@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Basic -->
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <!-- Mobile Metas -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <!-- Site Metas -->
+  <meta name="keywords" content="" />
+  <meta name="description" content="" />
+  <meta name="author" content="" />
+  <link rel="shortcut icon" href="images/favicon.png" type="">
+
+  <title> The Good View </title>
+
+  <!-- bootstrap core css -->
+  <link rel="stylesheet" type="text/css" href="css/bootstrap.css" />
+
+  <!--owl slider stylesheet -->
+  <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css" />
+  <!-- nice select  -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-nice-select/1.1.0/css/nice-select.min.css" integrity="sha512-CruCP+TD3yXzlvvijET8wV5WxxEh5H8P4cmz0RFbKK6FlZ2sYl3AEsKlLPHbniXKSrDdFewhbmBK5skbdsASbQ==" crossorigin="anonymous" />
+  <!-- font awesome style -->
+  <link href="css/font-awesome.min.css" rel="stylesheet" />
+
+  <!-- Custom styles for this template -->
+  <link href="css/style.css" rel="stylesheet" />
+  <!-- responsive style -->
+  <link href="css/responsive.css" rel="stylesheet" />
+  <title>Edit Reservation</title>
+
+  <style>
+    body {
+      background: #f7f7f7;
+      font-family: Arial, sans-serif;
+    }
+    .container {
+      max-width: 700px;
+      margin: 40px auto;
+      padding: 25px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    label {
+      font-weight: bold;
+      margin-top: 10px;
+      display: block;
+    }
+    .form-control {
+      width: 100%;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      margin-bottom: 10px;
+    }
+    .btn {
+      padding: 10px 15px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      display: inline-block;
+    }
+    .btn-save {
+      background: #28a745;
+      color: white;
+    }
+    .btn-cancel {
+      background: #6c757d;
+      color: white;
+      text-decoration: none;
+    }
+    .btn-wrapper {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h2>Edit Reservation</h2>
+
+    <form action="/update-booking" method="POST">
+
+      <input type="hidden" name="update_id" value="<%= booking._id %>">
+
+      <label>Guest Name</label>
+      <input type="text" name="name" class="form-control" value="<%= booking.name %>" required />
+
+      <label>Phone</label>
+      <input type="text" name="phone" class="form-control" value="<%= booking.phone %>" required />
+
+      <label>Email</label>
+      <input type="email" name="email" class="form-control" value="<%= booking.email %>" />
+
+      <label>Zone</label>
+      <select id="zone" name="zone" class="form-control" required>
+        <option value=""></option>
+        <option value="1" <%= booking.zone === "1" ? "selected" : "" %>>Zone 1</option>
+        <option value="2" <%= booking.zone === "2" ? "selected" : "" %>>Zone 2</option>
+        <option value="3" <%= booking.zone === "3" ? "selected" : "" %>>Zone 3</option>
+        <option value="4" <%= booking.zone === "4" ? "selected" : "" %>>Zone 4</option>
+        <option value="5" <%= booking.zone === "5" ? "selected" : "" %>>Zone 5</option>
+        <option value="6" <%= booking.zone === "6" ? "selected" : "" %>>Zone 6</option>
+        <option value="TK" <%= booking.zone === "TK" ? "selected" : "" %>>Karaoke</option>
+      </select>
+
+      <label>Table Number</label>
+      <input type="text" name="tableNo" class="form-control" value="<%= booking.tableNo %>" />
+      <!-- <select id="tableNo" name="tableNo" class="form-control" required>
+        <option value=""></option>
+      </select> -->
+
+      <label>Guests</label>
+      <input type="number" name="guests" class="form-control" value="<%= booking.guests %>" />
+
+      <label>Date / Time</label>
+      <input type="date" name="reservationDateTime" class="form-control"
+        value="<%= booking.reservationDateTime.toISOString().substring(0,10) %>" required />
+
+
+      <label>Notes</label>
+      <textarea name="note" class="form-control" rows="3"><%= booking.note %></textarea>
+
+      <div class="btn-wrapper">
+        <button type="submit" class="btn btn-save" onclick="showSuccess()">Save Changes</button>
+        <a href="/booking-list" class="btn btn-cancel">Cancel</a>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+      // TABLE DATA
+      const tableData = {
+        1: { start: 101, count: 17, prefix: "T"},
+        2: { start: 201, count: 20, prefix: "T"},
+        3: { start: 301, count: 20, prefix: "T"},
+        4: { start: 401, count: 17, prefix: "T"},
+        5: { start: 501, count: 16, prefix: "T"},
+        6: { start: 601, count: 6, prefix: "T"},
+        7: { start: 701, count: 17, prefix: "T"},
+        TK: { start: 1, count: 12, prefix: "K"}
+      };
+
+      const selectedZone = `<%= booking.zone %>`;
+      const selectedTable = `<%= booking.tableNo %>`;
+      const selectedTime = `<%= booking.time %>`;
+
+      // TIME SLOT DATA (10:00–22:00, every 30 minutes)
+      function generateTimeSlots(start, end) {
+        let times = [];
+        let hour = start;
+        let minute = 0;
+
+        while (hour < end || (hour === end && minute === 0)) {
+          let h = hour.toString().padStart(2, "0");
+          let m = minute.toString().padStart(2, "0");
+          times.push(`${h}:${m}`);
+
+          minute += 30;
+          if (minute === 60) {
+            minute = 0;
+            hour++;
+          }
+        }
+        return times;
+      }
+
+      const timeSlots = generateTimeSlots(10, 22); // 10:00–22:00
+
+      // Populate Time Dropdown
+      const timeSelect = $("#resTime");
+      timeSlots.forEach(t => {
+        timeSelect.append(`<option value="${t}">${t}</option>`);
+      });
+      timeSelect.niceSelect("update");
+
+      // ZONE → TABLE LOGIC
+      $("#zone").on("change", function () {
+        const zone = $(this).val();
+        const tableSelect = $("#tableNo");
+
+        tableSelect.empty();
+        tableSelect.append('<option disabled selected>Select Table Number</option>');
+
+        if (tableData[zone]) {
+
+            const { start, count, prefix } = tableData[zone];
+
+            for (let i = 0; i < count; i++) {
+              const number = start + i;
+
+              // Display and value
+              const display = `${prefix}${number}`;
+
+              tableSelect.append(`<option value="${display}">${display}</option>`);
+            }
+          }
+
+        tableSelect.niceSelect("update");
+      });
+
+    });
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <% if (messages.error && messages.error.length > 0) { %>
+  <script>
+      Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "<%= messages.error[0] %>",
+      });
+  </script>
+  <% } %>
+
+  <!-- <script>
+    function showSuccessAndRedirect() {
+        const popup = document.getElementById("success-popup");
+        popup.style.display = "block";
+
+        setTimeout(() => {
+            window.location.href = "/booking-list"; // redirect after 1 seconds
+        }, 1000);
+    }
+  </script> -->
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <script>
+  function showSuccess() {
+      Swal.fire({
+          title: "Updated!",
+          text: "Booking updated successfully",
+          icon: "success",
+          timer: 2000,
+          showConfirmButton: false
+      }).then(() => {
+          window.location.href = "/booking-list";
+      });
+  }
+  </script>
+
+
+
+</body>
+</html>

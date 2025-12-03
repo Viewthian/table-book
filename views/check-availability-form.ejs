@@ -1,0 +1,103 @@
+<form id="check-availability-form" method="POST" action="/check-availability">
+  <div class="row">
+    <div class="col-md-6 mb-3 mb-lg-0 col-lg-3">
+      <label for="checkin_date" class="font-weight-bold text-black">Check In</label>
+      <div class="field-icon-wrap">
+        <div class="icon"><span class="icon-calendar"></span></div>
+        
+        <input type="text" id="checkin_date" class="form-control" name="checkin_date" value="<%= formData?.checkin_date || '' %>">
+          
+            <% if (errors?.checkin_date) { %>
+              <small class="text-danger"><%= errors.checkin_date %></small>
+            <% } %>
+      </div>
+    </div>
+    <div class="col-md-6 mb-3 mb-lg-0 col-lg-3">
+      <label for="checkout_date" class="font-weight-bold text-black">Check Out</label>
+      <div class="field-icon-wrap">
+        <div class="icon"><span class="icon-calendar"></span></div>
+        <input type="text" id="checkout_date" class="form-control" name="checkout_date" value="<%= formData?.checkout_date || '' %>">
+            
+            <% if (errors?.checkout_date) { %>
+              <small class="text-danger"><%= errors.checkout_date %></small>
+            <% } %>
+      </div>
+    </div>
+    <div class="col-md-6 mb-3 mb-md-0 col-lg-3">
+      <div class="row">
+        <div class="col-md-6 mb-3 mb-md-0">
+          <label for="adults" class="font-weight-bold text-black">Adults</label>
+          <div class="field-icon-wrap">
+            <div class="icon"><span class="ion-ios-arrow-down"></span></div>
+            <select id="adults" class="form-control" name="adults">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+            </select>
+          </div>
+        </div>
+        <div class="col-md-6 mb-3 mb-md-0">
+          <label for="children" class="font-weight-bold text-black">Children</label>
+          <div class="field-icon-wrap">
+            <div class="icon"><span class="ion-ios-arrow-down"></span></div>
+            <select id="children" class="form-control" name="children">
+              <option value="0">0</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3+</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-3 align-self-end">
+      <button class="btn btn-primary btn-block text-white">Check Availabilty</button>
+    </div>
+  </div>
+</form>
+
+
+<script>
+  async function getUnavailableDates() {
+    try {
+      const res = await fetch('/booked-dates');
+      const dates = await res.json();
+      return dates;
+    } catch (err) {
+      console.error('Error fetching booked dates', err);
+      return [];
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    const unavailableDates = await getUnavailableDates();
+
+    flatpickr("#checkin_date", {
+      dateFormat: "Y-m-d",
+      minDate: "today",
+      disable: unavailableDates
+    });
+
+    flatpickr("#checkout_date", {
+      dateFormat: "Y-m-d",
+      minDate: "today",
+      disable: unavailableDates
+    });
+
+    // 🚫 Prevent invalid date range
+    const form = document.getElementById('check-availability-form');
+    form.addEventListener('submit', function (event) {
+      const checkinDate = new Date(document.getElementById('checkin_date').value);
+      const checkoutDate = new Date(document.getElementById('checkout_date').value);
+
+      if (checkinDate >= checkoutDate) {
+        event.preventDefault(); // stop redirect
+        alert("Check-out date must be later than check-in date.");
+      }
+    });
+  });
+</script>
+
