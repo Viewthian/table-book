@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Edit Member</title>
+</head>
+<body>
+
+<h2>Edit Member</h2>
+
+<form method="POST" action="/edit-member/<%= member._id %>">
+  <label>Username</label>
+  <input type="text" name="username" value="<%= member.username %>" required>
+
+  <label>Email</label>
+  <input type="email" name="email" value="<%= member.email %>" required>
+
+  <button type="submit">Update</button>
+</form>
+
+</body>
+</html>

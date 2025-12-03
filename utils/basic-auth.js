@@ -20,4 +20,11 @@ function basicAuth(req, res, next) {
   return res.status(401).send('Invalid credentials');
 }
 
-module.exports = basicAuth;
+function requireAdmin(req, res, next) {
+  if (!req.session.isAdmin) {
+    return res.status(403).send("Access denied.");
+  }
+  next();
+}
+
+module.exports = basicAuth, requireAdmin;

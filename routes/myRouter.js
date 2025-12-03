@@ -2,144 +2,286 @@
 require('dotenv').config();
 const express = require('express')
 const router = express.Router()
+const bcrypt = require("bcrypt");
 // const path = require('path')    //ใช้เพื่ออ้างอิงตำแหน่งไฟล์
 
 //เรียกใช้งาน model
 const bookTable = require('../models/table-booking.js')  
+const memberTable = require('../models/members.js')  
 const { error } = require('console')
 const checkTimeConflict  = require('../utils/check-availability');
-const basicAuth = require('../utils/basic-auth');
+const requireAdmin = require('../utils/basic-auth');
 const { format } = require("date-fns");
 const { th } = require("date-fns/locale");
+const { render } = require('ejs');
 
-//upload file
-// const multer  = require('multer')
-// const Booking = require('../models/booking.js')
-
-// const storage = multer.diskStorage({
-//   destination: function (req, file, cb) {
-//     cb(null, './public/images/products')   //ตำแหน่งเก็บไฟล์
-//   },
-//     filename: function (req, file, cb) {
-//     // const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
-//     // cb(null, file.fieldname + '-' + uniqueSuffix)
-//     cb(null,Date.now() + ".jpg") //ใช้ date ในการช่วยจัดเก็บซื่อไฟล์ ป้องกันการซ้ำ
-//   }
-// })
-
-// const upload = multer({ 
-//     storage: storage 
-// })
-
-// call function 'basicAuth' to protect website (using while under maintenance)
-router.get('/', (req, res) => {
-    
-    res.render('index', {
-    errors: {},
-    formData: {}
-  });
-});
-
-router.get('/admin-login', (req,res)=>{
-    res.render('admin-login.ejs', {error})
+//Load Login Page
+router.get('/login', (req, res) => {
+  res.render('login');
 })
 
-router.post('/login', (req,res)=>{
-    const username = req.body.username
-    const password = req.body.password
-    const timeExpire = 100000    //10วิ
+//login new version (get username/password from DB)
+router.post("/login", async (req, res) => {
+  const { username, password } = req.body;
 
-    if(username == process.env.admin && password==process.env.password){
-        // //สร้าง cookie
-        // res.cookie('user_admin', username,{maxAge:timeExpire})    //user_admin คือชื่อของ cookie ที่จะเก็บ
-        // res.cookie('password', password,{maxAge:timeExpire})    
-        // res.cookie('login', true,{maxAge:timeExpire})    
-        // res.redirect('/manage')
+  try {
+    const user = await memberTable.findOne({ username });
 
-        //สร้าง session
-        req.session.username = username
-        req.session.password = password
-        req.session.login = true
-        req.session.cookie.maxAge = timeExpire
-        res.redirect('admin-dashboard')
-    }else{
-        res.render('404')
+    if (!user) {
+      return res.render("login", { error: "Invalid username or password" });
     }
-})
 
-router.get("/book-form", (req, res) => {
-  res.render("admin-book-form"); // this will be your calendar form page
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!isMatch) {
+      return res.render("login", { error: "Invalid username or password" });
+    }
+
+    // Store session
+    req.session.login = true;
+    req.session.userId = user._id;
+    req.session.username = user.username;
+
+    // ✔ Correct admin flag
+    req.session.isAdmin = (user.username === "admin");
+
+    // ✔ Redirect correctly
+    if (req.session.isAdmin) {
+      return res.redirect("/booking-list");
+    }
+
+    return res.redirect("/booking-list");
+  } catch (err) {
+    console.error(err);
+    return res.render("login", { error: "Something went wrong." });
+  }
 });
 
-// Admin page
-router.get('/admin-dashboard', async (req, res) => {
-  if (req.session.login) {
-    try {
-      // Get default price
-      const room = await Prices.findOne({ name: 'default' }).lean();
-      
-      // Get all bookings
-      const bookings = await Booking.find().lean();
-
-      // Get Messages from Guests
-      const contactus = await Contact.find().lean();
-
-      // Get revenue
-        const revenueData = await Booking.aggregate([
-        {
-            $group: {
-            _id: {
-                year: { $year: "$checkInDate" },
-                month: { $month: "$checkInDate" }
-            },
-            totalRevenue: { $sum: "$amount" }
-            }
-        },
-        {
-            $sort: {
-            "_id.year": 1,
-            "_id.month": 1
-            }
-        }
-        ]);
-
-            // Transform for frontend (labels + values)
-            const formatted = revenueData.map(r => ({
-            year: r._id.year,
-            month: r._id.month,
-            totalRevenue: r.totalRevenue
-        }));
-
-        res.render('admin-dashboard', {
-        defaultPrice: room ? room.defaultPrice : 0,
-        priceId: room ? room._id : null,
-        bookings,
-        contactus,
-        revenue: formatted 
-        });
-        } catch (err) {
-        console.error(err);
-        res.status(500).send("Server Error");
-        }
+// Go to index page, no idea to provide any contents yet
+router.get('/', (req, res) => {
+    if (req.session.login) {
+        res.render('index', {
+        errors: {},
+        username: req.session.username,
+        isAdmin: req.session.isAdmin,
+        isLogin: req.session.login
+      });
     } else {
-        res.render('admin-login');
+        res.render('login');
+    }
+});
+
+
+// Display Reservation Page (show only upcoming reservations)
+router.get("/booking-list", async (req, res) => {
+  if (!req.session.login) {
+    return res.render("login");
+  }
+
+  try {
+    const filter = req.query.filter || "incoming"; // default incoming
+    const sortParam = req.query.sort || "incoming";
+    const limit = Number(req.query.limit) || 10;
+    const page = Number(req.query.page) || 1;
+    const skip = (page - 1) * limit;
+
+    // Fresh "now" timestamp (moment in time). Do NOT mutate this object later.
+    const now = new Date();
+
+    const query = {};
+
+    if (filter === "today") {
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      query.reservationDateTime = { $gte: start, $lte: end };
+
+    } else if (filter === "thisMonth") {
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      query.reservationDateTime = { $gte: firstDay, $lte: lastDay };
+
+    } else if (filter === "thisYear") {
+      // ⭐ NEW: Whole year
+      const yearStart = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+      const yearEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+      query.reservationDateTime = { $gte: yearStart, $lte: yearEnd };
+
+    } else if (filter === "incoming") {
+      // Only future bookings
+      query.reservationDateTime = { $gte: new Date() };
+
+    } else {
+      // Default fallback = incoming
+      query.reservationDateTime = { $gte: new Date() };
+    }
+
+
+    // Sorting logic
+    let sortQuery = { reservationDateTime: 1 }; // default: soonest first
+    if (sortParam === "oldest") sortQuery = { reservationDateTime: 1 };
+    if (sortParam === "newest") sortQuery = { createdAt: -1 };
+    if (sortParam === "incoming") sortQuery = { reservationDateTime: 1 };
+
+    // Fetch only future bookings according to the query
+    const [bookings, totalCount] = await Promise.all([
+      bookTable.find(query).sort(sortQuery).skip(skip).limit(limit).lean(),
+      bookTable.countDocuments(query)
+    ]);
+
+    // (optional) debug - remove in production
+    // console.log("Filter query:", query);
+    // console.log("Now:", new Date());
+
+    return res.render("booking-list", {
+      bookings,
+      filter,
+      sort: sortParam,
+      limit,
+      currentPage: page,
+      totalPages: Math.ceil(totalCount / limit) || 1,
+      username: req.session.username,
+      isAdmin: req.session.isAdmin,
+      isLogin: req.session.login
+    });
+
+  } catch (err) {
+    console.error("Error in /booking-list:", err);
+    return res.status(500).send("Error loading booking list");
   }
 });
 
 
-// Handle admin booking
+
+
+// Display Overview All Booking Data Over A Year
+router.get("/dashboard", async (req, res) => {
+  if (!req.session.login) {
+    return res.render("login");
+  }
+  try {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth(); // 0-based
+
+    /* --------------------------------------
+      TODAY STATS (precise start/end)
+    -------------------------------------- */
+    const startOfToday = new Date(year, month, now.getDate(), 0, 0, 0, 0);
+    const endOfToday = new Date(year, month, now.getDate(), 23, 59, 59, 999);
+
+    const todayTotalBookings = await bookTable.countDocuments({
+      status: { $in: ["booked", "checkin"] },
+      reservationDateTime: { $gte: startOfToday, $lte: endOfToday }
+    });
+
+    const todayCheckin = await bookTable.countDocuments({
+      status: "checkin",
+      reservationDateTime: { $gte: startOfToday, $lte: endOfToday }
+    });
+
+    /* --------------------------------------
+      MONTHLY BOOKINGS FOR CARDS (this calendar month)
+      -> include only booked & checkin statuses for the monthly total
+    -------------------------------------- */
+    const startOfCurrentMonth = new Date(year, month, 1, 0, 0, 0, 0);
+    const endOfCurrentMonth = new Date(year, month + 1, 0, 23, 59, 59, 999);
+
+    const monthlyBookings = await bookTable.countDocuments({
+      status: { $in: ["booked", "checkin"] },
+      reservationDateTime: { $gte: startOfCurrentMonth, $lte: endOfCurrentMonth }
+    });
+
+    /* --------------------------------------
+      TOTAL BOOKINGS (this year)
+      -> use the full year range for the current year
+    -------------------------------------- */
+    const startOfYear = new Date(year, 0, 1, 0, 0, 0, 0);
+    const endOfYear = new Date(year, 11, 31, 23, 59, 59, 999);
+
+    const totalBookingsThisYear = await bookTable.countDocuments({
+      reservationDateTime: { $gte: startOfYear, $lte: endOfYear }
+    });
+
+    /* --------------------------------------
+      STACKED BAR CHART: BOOKED VS CHECKIN (per month)
+      -> run counts in parallel for speed and accuracy
+    -------------------------------------- */
+    const monthLabels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+    const bookedPromises = [];
+    const checkinPromises = [];
+
+    for (let i = 0; i < 12; i++) {
+      const startOfMonth = new Date(year, i, 1, 0, 0, 0, 0);
+      const endOfMonth = new Date(year, i + 1, 0, 23, 59, 59, 999);
+
+      // pushed as promises to execute in parallel
+      bookedPromises.push(
+        bookTable.countDocuments({
+          status: { $in: ["booked", "checkin"] },
+          reservationDateTime: { $gte: startOfMonth, $lte: endOfMonth }
+        })
+      );
+
+      checkinPromises.push(
+        bookTable.countDocuments({
+          status: "checkin",
+          reservationDateTime: { $gte: startOfMonth, $lte: endOfMonth }
+        })
+      );
+    }
+
+    const bookedCounts = await Promise.all(bookedPromises);
+    const checkinCounts = await Promise.all(checkinPromises);
+
+    // console.log("Now:", now.toISOString());
+    // console.log("StartOfCurrentMonth:", startOfCurrentMonth.toISOString());
+    // console.log("EndOfCurrentMonth:", endOfCurrentMonth.toISOString());
+    // console.log("monthlyBookings:", monthlyBookings);
+    // console.log("totalBookingsThisYear:", totalBookingsThisYear);
+
+
+    /* --------------------------------------
+      SEND TO FRONTEND
+    -------------------------------------- */
+    res.render("dashboard", {
+      todayCheckin,
+      todayTotalBookings,
+      monthlyBookings,
+      totalBookingsThisYear,
+      monthLabels,
+      bookedCounts,
+      checkinCounts,
+      username: req.session.username,
+      isAdmin: req.session.isAdmin,
+      isLogin: req.session.login
+    });
+
+  } catch (err) {
+    console.error("Dashboard error:", err);
+    res.status(500).send("Error loading dashboard");
+  }
+});
+
+router.get("/book", (req, res) => {
+  res.render("book", { 
+    messages: req.flash(),
+    username: req.session.username,
+    isAdmin: req.session.isAdmin,
+    isLogin: req.session.login });
+});
+
+// Make reservation
 router.post("/reserve", async (req, res) => {
   try {
-    const { name, phone, email, zone, tableNo, guests, reservationDateTime, note, createBy } = req.body;
+    const { name, phone, email, zone, tableNo, guests, reservationDateTime, note } = req.body;
 
     const hasConflict = await checkTimeConflict({ reservationDateTime, tableNo });
 
     if (hasConflict) {
-      req.flash("error", "Reservation time overlaps with an existing booking!");
+      req.flash("error", "❌ Reservation time overlaps with an existing booking!");
       return res.redirect("/book");
     }
     
-
     const newBooking = new bookTable({
       name,
       phone,
@@ -149,7 +291,7 @@ router.post("/reserve", async (req, res) => {
       guests,
       reservationDateTime: new Date(reservationDateTime),
       note,
-      createBy
+      createBy: req.session.username 
     });
 
     console.log(newBooking);
@@ -162,73 +304,8 @@ router.post("/reserve", async (req, res) => {
   }
 });
 
-router.get("/book", (req, res) => {
-  res.render("book", { messages: req.flash() });
-});
 
-
-router.get("/booking-list", async (req, res) => {
-  try {
-    let filter = req.query.filter || "all";
-    let sort = req.query.sort || "incoming";
-    let limit = Number(req.query.limit) || 10;
-    let page = Number(req.query.page) || 1;
-
-    const skip = (page - 1) * limit;
-
-    const query = {};
-    const now = new Date();
-
-    if (filter === "today") {
-      query.reservationDateTime = {
-        $gte: new Date(now.setHours(0, 0, 0, 0)),
-        $lte: new Date(now.setHours(23, 59, 59, 999))
-      };
-    }
-
-    if (filter === "thisMonth") {
-      query.reservationDateTime = {
-        $gte: new Date(now.getFullYear(), now.getMonth(), 1),
-        $lte: new Date(now.getFullYear(), now.getMonth() + 1, 0)
-      };
-    }
-
-    if (filter === "incoming") {
-      query.reservationDateTime = { $gte: new Date() }; // only future bookings
-      sort = "incoming"; // override sorting for incoming
-    }
-
-    let sortQuery = { createdAt: -1 };
-
-    if (sort === "oldest") sortQuery = { createdAt: 1 };
-    if (sort === "newest") sortQuery = { createdAt: -1 };
-    if (sort === "incoming") sortQuery = { reservationDateTime: 1 }; // soonest first
-
-    const bookings = await bookTable
-      .find(query)
-      .sort(sortQuery)
-      .skip(skip)
-      .limit(limit);
-
-    const totalCount = await bookTable.countDocuments(query);
-
-    res.render("booking-list", {
-      bookings,
-      filter,
-      sort,
-      limit,
-      currentPage: page,
-      totalPages: Math.ceil(totalCount / limit)
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error loading booking list");
-  }
-});
-
-
-
-
+// When customer come and check-in to get the table, staffs shall tick the checkbox
 router.post("/booking/checkin/:id", async (req, res) => {
   try {
     const { status } = req.body;
@@ -247,126 +324,61 @@ router.post("/booking/checkin/:id", async (req, res) => {
 });
 
 
+// Only Admin can see 'Add-Member' button on the dashboard page
+router.get("/add-member", async (req, res) => {
+  if (req.session.login) {
+    res.render("add-member", { 
+    error: null, 
+    success: null,
+    username: req.session.username,
+    isAdmin: req.session.isAdmin
+   });
+  } else {
+    res.render('login');
+  }
+  
+});
 
-router.get("/dashboard", async (req, res) => {
+// HANDLE MEMBER CREATION
+router.post("/add-member", async (req, res) => {
+  const { username, email, password } = req.body;
+
   try {
-    const now = new Date();
-    const year = now.getFullYear();
-
-    /* --------------------------------------
-       TODAY STATS
-    -------------------------------------- */
-    const startOfToday = new Date(year, now.getMonth(), now.getDate(), 0, 0, 0);
-    const endOfToday = new Date(year, now.getMonth(), now.getDate(), 23, 59, 59);
-
-    // Count TODAY bookings (status = booked)
-    const todayTotalBookings = await bookTable.countDocuments({
-      status: { $in: ["booked", "checkin"] },
-      reservationDateTime: { $gte: startOfToday, $lte: endOfToday }
+    // Check for duplicate username/email
+    const existing = await memberTable.findOne({ 
+      $or: [{ username }, { email }] 
     });
 
-    // Count TODAY check-ins (status = checkin)
-    const todayCheckin = await bookTable.countDocuments({
-      status: "checkin",
-      reservationDateTime: { $gte: startOfToday, $lte: endOfToday }
-    });
-
-    /* --------------------------------------
-       MONTHLY BOOKINGS FOR CARDS
-    -------------------------------------- */
-    const startOfCurrentMonth = new Date(year, now.getMonth(), 1);
-
-    const monthlyBookings = await bookTable.countDocuments({
-      reservationDateTime: { $gte: startOfCurrentMonth }
-    });
-
-    /* --------------------------------------
-       TOTAL BOOKINGS (2025)
-    -------------------------------------- */
-    const totalBookings2025 = await bookTable.countDocuments({
-      reservationDateTime: {
-        $gte: new Date("2025-01-01"),
-        $lte: new Date("2025-12-31")
-      }
-    });
-
-    /* --------------------------------------
-       STACKED BAR CHART: BOOKED VS CHECKIN
-    -------------------------------------- */
-    const monthLabels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-
-    const bookedCounts = [];
-    const checkinCounts = [];
-
-    for (let i = 0; i < 12; i++) {
-      const startOfMonth = new Date(year, i, 1);
-      const endOfMonth = new Date(year, i + 1, 0, 23, 59, 59);
-
-      // Count Booked
-      const booked = await bookTable.countDocuments({
-        status: { $in: ["booked", "checkin"] },
-        reservationDateTime: { $gte: startOfMonth, $lte: endOfMonth }
+    if (existing) {
+      return res.render("add-member", { 
+        error: "Username or Email already exists.",
+        success: null
       });
-
-      // Count Check-in
-      const checkin = await bookTable.countDocuments({
-        status: "checkin",
-        reservationDateTime: { $gte: startOfMonth, $lte: endOfMonth }
-      });
-
-      bookedCounts.push(booked);
-      checkinCounts.push(checkin);
-
-      
     }
 
-    /* --------------------------------------
-       SEND TO FRONTEND
-    -------------------------------------- */
-    res.render("dashboard", {
-      todayCheckin,
-      todayTotalBookings,
-      monthlyBookings,
-      totalBookings2025,
-      monthLabels,
-      bookedCounts,
-      checkinCounts
-      
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Create new member
+    await memberTable.create({
+      username,
+      email,
+      passwordHash
+    });
+
+    return res.render("add-member", { 
+      success: "Member created successfully!",
+      error: null
     });
 
   } catch (err) {
-    console.error("Dashboard error:", err);
-    res.status(500).send("Error loading dashboard");
+    console.error(err);
+    return res.render("add-member", { 
+      error: "Something went wrong",
+      success: null
+    });
   }
 });
-
-
-
-
-// router.get("/dashboard", (req,res)=>{
-//     res.render('dashboard')
-// })
-
-router.get("/menu", (req,res)=>{
-    res.render('menu')
-})
-
-router.get("/about", (req,res)=>{
-    res.render('about')
-})
-
-router.get("/book", (req,res)=>{
-    res.render('book')
-})
-
-router.get("/contact", (req,res)=>{
-    res.render('contact')
-})
-
-
-router.get('/members', (req,res)=>{
-    res.render('members')  
-})
 
 router.post('/update-booking', async (req, res) => {
     try {
@@ -415,20 +427,10 @@ router.post('/update-booking', async (req, res) => {
 });
 
 
-
-
 router.get("/edit-booking/:id", async (req, res) => {
     const booking = await bookTable.findById(req.params.id);
     res.render("edit-booking", { booking, messages: {} });
 });
-
-// router.get("/edit-booking/:id", async (req, res) => {
-//     const booking = await bookTable.findById(req.params.id);
-//     res.render("edit-booking", {
-//         booking,
-//         messages: req.flash()
-//     });
-// });
 
 router.get("/delete-booking/:id", async (req, res) => {
     try {
@@ -450,93 +452,68 @@ router.get("/pm-admin", (req,res)=>{
     
 })
 
-// router.get("/booking-list", async (req, res) => {
-//   let { search, filter } = req.query;
-//   let query = {};
-
-//   if (search) {
-//     query.$or = [
-//       { name: new RegExp(search, "i") },
-//       { phone: new RegExp(search, "i") }
-//     ];
-//   }
-
-//   if (filter === "today") {
-//     const today = new Date();
-//     const tomorrow = new Date(today);
-//     tomorrow.setDate(today.getDate() + 1);
-
-//     query.bookedDate = { $gte: today, $lt: tomorrow };
-//   }
-
-//   if (filter === "thisMonth") {
-//     const now = new Date();
-//     const start = new Date(now.getFullYear(), now.getMonth(), 1);
-//     const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-
-//     query.bookedDate = { $gte: start, $lt: end };
-//   }
-
-//   let sort = {};
-//   if (filter === "newest") sort.bookedDate = -1;
-//   if (filter === "oldest") sort.bookedDate = 1;
-
-//   const bookings = await bookTable.find(query).sort(sort);
-//   res.render("booking-list", { bookings, search, filter });
-// });
-
 
 
 router.get('/logout',(req,res)=>{
     req.session.destroy((err)=>{
-        res.redirect('/manage')
+        res.redirect('/login')
     })
     
 })
 
-// router.get("/delete/:id", (req,res)=>{
-//     Product.findByIdAndDelete(req.params.id,{useFindAndModify:false}).exec(err=>{
-//         if(err) console.log(err)
-//         res.redirect('/manage')
-//     })
-// })
+// ======== Manage Members ============
+router.get("/members", async (req, res) => {
+  try {
+    const members = await memberTable.find().sort({ createdAt: -1 });
 
+    res.render("members", {
+      members,
+      username: req.session.username,
+      isAdmin: req.session.isAdmin,
+      isLogin: req.session.login
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error loading members");
+  }
+});
 
+router.get("/delete-member/:id", async (req, res) => {
+  try {
+    await memberTable.findByIdAndDelete(req.params.id);
+    res.redirect("/members");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error deleting member");
+  }
+});
 
+router.get("/edit-member/:id", async (req, res) => {
+  try {
+    const member = await memberTable.findById(req.params.id);
+    res.render("edit-member", { member });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error editing member");
+  }
+});
 
-// router.post('/insert', (req,res)=>{     //upload.single('image')
-//     console.log(req.body)
-//     let data = new Product({
-//         name:req.body.name,
-//         price:req.body.price,
-//         image:req.file.filename,     //เราได้ใช้ multer มาช่วยในการจัดการ file upload 
-//         description:req.body.description
-//     })
-//     Product.saveProduct(data,(err)=>{
-//         if(err) console.log(err)
-//     })
-//     res.redirect('/')      
-// })
+router.post("/edit-member/:id", async (req, res) => {
+  const { username, email } = req.body;
 
+  try {
+    await memberTable.findByIdAndUpdate(req.params.id, {
+      username,
+      email
+    });
 
+    res.redirect("/members");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error updating member");
+  }
+});
 
-
-// router.get("/:id", (req,res)=>{
-//     const product_id = req.params.id
-//     Product.findOne({_id:product_id}).exec((err,doc)=>{
-//          res.render('product',{product:doc})
-//     })
-// })
-
-// router.post('/edit',(req,res)=>{
-//     //รับค่า product id ที่ส่งมาจากหน้า manage
-//     const edit_id = req.body.edit_id
-
-//     //ส่งไปถาม DB ว่ามี product id อันนี้ไหม
-//     Product.findOne({_id:edit_id}).exec((err,doc)=>{   //DB จะ return ออกมาเป็นรูปแบบ doc (object) ของ product นั้นๆ ไปแสดงใน form edit
-//          res.render('edit',{product:doc})
-//     })   
-// })
 
 // ====================================
 // EXPORT CSV ROUTE

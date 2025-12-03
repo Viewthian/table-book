@@ -6,12 +6,15 @@ mongoose.set('strictQuery', false);
 //เชื่อมไปยัง mongoDB
 const dbUrl = 'mongodb://localhost:27017/tableDB'
 
+mongoose.connect(process.env.MONGO_URL)
+  .then(() => console.log("MongoDB connected"))
+  .catch(err => console.error("MongoDB connection error:", err));
 
 //---------- connect DB on local ------------------//
-mongoose.connect(dbUrl,{
-    useNewUrlParser:true,
-    useUnifiedTopology:true
-}).catch(err=>console.log(err))
+// mongoose.connect(dbUrl,{
+//     useNewUrlParser:true
+//     // useUnifiedTopology:true
+// }).catch(err=>console.log(err))
 
 //---------- connect DB on server ------------------//
 // mongoose.connect(process.env.MONGO_URL,{

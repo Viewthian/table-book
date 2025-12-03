@@ -5,7 +5,7 @@ const express = require('express')
 const router = require('./routes/myRouter')
 const path = require('path')
 const cookieParser = require('cookie-parser')
-const flash = require("connect-flash");
+const flash = require("connect-flash-plus");
 const session = require('express-session')
 const app = express()
 const PORT = process.env.PORT || 3000;
@@ -18,8 +18,23 @@ app.set('view engine', 'ejs')     //ใช้ ejs เป็น template ใน�
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser())
-app.use(session({secret:"myession",resave:false,saveUninitialized:false}))    //มากำหนด middleware ให้ session โดยส่ง poperty ไปด้วย
+// app.use(session({secret:"myession",resave:false,saveUninitialized:false}))    //มากำหนด middleware ให้ session โดยส่ง poperty ไปด้วย
+app.use(session({
+  secret: "myession",
+  resave: false,
+  saveUninitialized: true,
+  cookie: {
+    httpOnly: true,      
+    secure: false,        // set true only if HTTPS
+    maxAge: 24 * 60 * 60 * 1000 // 1 day
+  }
+}));
+
 app.use(flash());
+app.use((req, res, next) => {
+  res.locals.messages = req.flash();
+  next();
+});
 app.use(router)             //ใช้ router มาช่วยในเรื่องการจัดการ dynamic file&content
 
 app.use(express.static(path.join(__dirname, 'public')))    //ไป render ที่ static file
