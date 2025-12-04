@@ -15,6 +15,9 @@ const { format } = require("date-fns");
 const { th } = require("date-fns/locale");
 const { render } = require('ejs');
 
+const BASIC_AUTH_USER = process.env.admin;
+const BASIC_AUTH_PASS = process.env.adminPassword;
+
 //Load Login Page
 router.get('/login', (req, res) => {
   res.render('login');
@@ -326,16 +329,14 @@ router.post("/booking/checkin/:id", async (req, res) => {
 
 // Only Admin can see 'Add-Member' button on the dashboard page
 router.get("/add-member", async (req, res) => {
-  if (req.session.login) {
+  
     res.render("add-member", { 
     error: null, 
     success: null,
     username: req.session.username,
     isAdmin: req.session.isAdmin
    });
-  } else {
-    res.render('login');
-  }
+ 
   
 });
 
@@ -440,6 +441,60 @@ router.get("/delete-booking/:id", async (req, res) => {
         console.error("Error deleting booking:", err);
         res.status(500).send("Something went wrong");
     }
+});
+
+router.post("/create-admin", async (req, res) => {
+  // Check for Authorization header
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Basic ')) {
+    res.set('WWW-Authenticate', 'Basic realm="User Visible Realm"');
+    return res.status(401).send('Authentication required.');
+  }
+
+  // Decode base64 credentials
+  const base64Credentials = authHeader.split(' ')[1];
+  const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
+  const [username, password] = credentials.split(':');
+
+  // Verify credentials
+  if (username !== BASIC_AUTH_USER || password !== BASIC_AUTH_PASS) {
+    return res.status(403).send('Forbidden: Invalid credentials');
+  }
+
+  // Proceed with your existing handler logic
+  const { username: newUser, email, password: newPassword } = req.body;
+
+  try {
+    const existing = await memberTable.findOne({
+      $or: [{ username: newUser }, { email }]
+    });
+
+    if (existing) {
+      return res.render("create-admin", {
+        error: "Username or Email already exists.",
+        success: null
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    await memberTable.create({
+      username: newUser,
+      email,
+      passwordHash
+    });
+
+    return res.render("create-admin", {
+      success: "Member created successfully!",
+      error: null
+    });
+  } catch (err) {
+    console.error(err);
+    return res.render("create-admin", {
+      error: "Something went wrong",
+      success: null
+    });
+  }
 });
 
 
