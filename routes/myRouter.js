@@ -329,14 +329,17 @@ router.post("/booking/checkin/:id", async (req, res) => {
 
 // Only Admin can see 'Add-Member' button on the dashboard page
 router.get("/add-member", async (req, res) => {
-  
+  if (req.session.login) {
     res.render("add-member", { 
     error: null, 
     success: null,
     username: req.session.username,
-    isAdmin: req.session.isAdmin
+    isAdmin: req.session.isAdmin,
+    isLogin: req.session.login
    });
- 
+  } else {
+    res.render('login');
+  }
   
 });
 
@@ -369,14 +372,20 @@ router.post("/add-member", async (req, res) => {
 
     return res.render("add-member", { 
       success: "Member created successfully!",
-      error: null
+      error: null,
+      username: req.session.username,
+      isAdmin: req.session.isAdmin,
+      isLogin: req.session.login
     });
 
   } catch (err) {
     console.error(err);
     return res.render("add-member", { 
       error: "Something went wrong",
-      success: null
+      success: null,
+      username: req.session.username,
+      isAdmin: req.session.isAdmin,
+      isLogin: req.session.login
     });
   }
 });
