@@ -14,24 +14,24 @@ const bookTable = require('../models/table-booking.js')
 
 // }
 
-async function checkTimeConflict({ reservationDateTime, tableNo, excludeId = null }) {
-    const date = new Date(reservationDateTime);
+async function checkTimeConflict({ reservationDateTime, tableNo }) {
+    const date = new Date(reservationDateTime); // must be valid
 
-    // Extract only the date part (clear time)
-    const startOfDay = new Date(date.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(date.setHours(23, 59, 59, 999));
+    if (isNaN(date)) return false; // avoid invalid date errors
 
-    const query = {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    return await bookTable.findOne({
         tableNo,
-        reservationDateTime: { $gte: startOfDay, $lte: endOfDay } // same day only
-    };
-
-    if (excludeId) {
-        query._id = { $ne: excludeId }; // exclude current record when editing
-    }
-
-    return await bookTable.findOne(query);
+        reservationDateTime: { $gte: startOfDay, $lte: endOfDay }
+    });
 }
+
+
 
 function formatBangkok(date) {
   return new Date(date).toLocaleString("th-TH", {

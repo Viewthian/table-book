@@ -97,7 +97,7 @@
       <input type="text" name="name" class="form-control" value="<%= booking.name %>" required />
 
       <label>Phone</label>
-      <input type="text" name="phone" class="form-control" value="<%= booking.phone %>" required />
+      <input type="text" name="phone" class="form-control" value="0<%= booking.phone %>" required />
 
       <label>Email</label>
       <input type="email" name="email" class="form-control" value="<%= booking.email %>" />
@@ -130,6 +130,8 @@
 
       <label>Notes</label>
       <textarea name="note" class="form-control" rows="3"><%= booking.note %></textarea>
+
+      <p style="color: rgb(238, 123, 15); font-size: large; font-weight: 500;">Booked By: <%= booking.createBy %> </p>
 
       <div class="btn-wrapper">
         <button type="submit" class="btn btn-save" onclick="showSuccess()">Save Changes</button>

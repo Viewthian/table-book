@@ -177,14 +177,11 @@
             </div>
 
             <div>
-              <input 
-                  type="datetime-local" 
-                  id="reservationDateTime" 
-                  name="reservationDateTime" 
-                  class="form-control"
-                  value=""
-              >
-              <small class="text-danger" id="reservationDateTimeError"></small>
+              <input type="date" id="resDate" name="resDate" class="form-control">
+              <select id="resTime" name="resTime" class="form-control">
+                <option value="" disabled selected>Select Time</option>
+              </select>
+              <small class="text-danger" id="resTimeError"></small>
             </div>
 
             <div>
@@ -257,7 +254,11 @@
     const zone = document.getElementById('zone').value;
     const tableNo = document.getElementById('tableNo').value;
     const amount = document.getElementById('amount').value;
-    const dateTime = document.getElementById('reservationDateTime').value;
+    const resDate = document.getElementById('resDate').value;
+    const resTime = document.getElementById('resTime').value;
+    // const dateTime = document.getElementById('reservationDateTime').value;
+    // const finalDateTime = `${resDate.value}T${resTime.value}`;
+
     // const staffid = document.getElementById('staffid').value.trim();
 
       
@@ -286,14 +287,16 @@
         document.getElementById('amountError').innerText = 'Please enter guests amount.';
         hasError = true;
       }
-      // if (!reservationDateTime) {
-      //   document.getElementById('reservationDateTimeError').innerText = 'Please select reservation date & time.';
-      //   hasError = true;
-      // }
 
-      if (!reservationDateTime) {
-          document.getElementById('reservationDateTimeError').innerText =
-              'Please select reservation date & time.';
+      if (!resDate) {
+          document.getElementById('resDate').innerText =
+              'Please select reservation date.';
+          hasError = true;
+      }
+
+      if (!resTime) {
+          document.getElementById('resTime').innerText =
+              'Please select reservation time.';
           hasError = true;
       }
 

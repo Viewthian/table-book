@@ -266,17 +266,39 @@ router.get("/dashboard", async (req, res) => {
 });
 
 router.get("/book", (req, res) => {
-  res.render("book", { 
-    messages: req.flash(),
-    username: req.session.username,
-    isAdmin: req.session.isAdmin,
-    isLogin: req.session.login });
+  res.render("book", {
+    messages: {
+      error: req.flash("error"),
+      success: req.flash("success")
+    },
+    username: req.session.username || "",
+    isAdmin: req.session.isAdmin || false,
+    isLogin: req.session.login || false
+  });
 });
+
 
 // Make reservation
 router.post("/reserve", async (req, res) => {
   try {
-    const { name, phone, email, zone, tableNo, guests, reservationDateTime, note } = req.body;
+    const { name, phone, email, zone, tableNo, guests, resDate, resTime, note } = req.body;
+
+    const moment = require("moment-timezone");
+    // Combine date + time in Bangkok timezone
+    const reservationDateTime = moment.tz(
+      `${resDate} ${resTime}`,
+      "YYYY-MM-DD HH:mm",
+      "Asia/Bangkok"
+    ).toDate();
+    
+    // Combine date + time into ONE datetime
+    // const reservationDateTime = new Date(`${resDate}T${resTime}:00`);
+
+    // Validate
+    if (isNaN(reservationDateTime)) {
+      req.flash("error", "Invalid date or time.");
+      return res.redirect("/book");
+    }
 
     const hasConflict = await checkTimeConflict({ reservationDateTime, tableNo });
 
@@ -292,19 +314,26 @@ router.post("/reserve", async (req, res) => {
       zone,
       tableNo,
       guests,
-      reservationDateTime: new Date(reservationDateTime),
+      reservationDateTime,
       note,
-      createBy: req.session.username 
+      createBy: req.session.username || "system" 
     });
 
     console.log(newBooking);
 
     await newBooking.save();
-    res.redirect("/booking-list"); // back to admin page after saving
+    // res.redirect("/booking-list"); // back to admin page after saving
+    req.flash("success", "✔ Reservation created successfully!");
+    return res.redirect("/booking-list");
   } catch (err) {
-    console.error(err);
-    res.render("book", { error: "Internal server error" });
-  }
+  console.error(err);
+  res.render("book", { 
+    messages: { error: ["Internal server error"], success: [] },
+    username: req.session.username,
+    isAdmin: req.session.isAdmin,
+    isLogin: req.session.login
+  });
+}
 });
 
 
