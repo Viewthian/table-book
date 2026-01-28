@@ -13,7 +13,7 @@
   <meta name="author" content="" />
   <link rel="shortcut icon" href="images/favicon.png" type="">
 
-  <title> The View Staffs </title>
+  <title> The View Village </title>
 
   <!-- bootstrap core css -->
   <link rel="stylesheet" type="text/css" href="css/bootstrap.css" />
@@ -31,36 +31,7 @@
   <link href="css/responsive.css" rel="stylesheet" />
 
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-    rel="stylesheet"
-    />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
-
-  <style>
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-    th, td {
-      padding: 10px;
-      border-bottom: 1px solid #ccc;
-      text-align: left;
-    }
-    .action-btn {
-      padding: 6px 12px;
-      border-radius: 5px;
-      text-decoration: none;
-      color: white;
-    }
-    .btn-edit {
-      background-color: #3498db;
-    }
-    .btn-delete {
-      background-color: #e74c3c;
-    }
-  </style>
 
 </head>
 
@@ -76,7 +47,7 @@
         <nav class="navbar navbar-expand-lg custom_nav-container ">
           <a class="navbar-brand" href="/">
             <span>
-              The View Staffs
+              The View Village
             </span>
           </a>
 
@@ -87,26 +58,23 @@
           <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav  mx-auto ">
               <li class="nav-item ">
-                <a class="nav-link" href="view-village-book">The View Village</a>
+                <a class="nav-link" href="viewbar-booking-list">รายชื่อลูกค้า </a>
               </li>
-              <li class="nav-item ">
-                <a class="nav-link" href="viewbar-book">The View Bar</a>
+              <li class="nav-item active">
+                <a class="nav-link" href="view-village-dashboard">กราฟสถิติ <span class="sr-only">(current)</span></a>
               </li>
-              <li class="nav-item ">
-                <a class="nav-link" href="coolly-chef-book">Coolly Chef</a>
-              </li>
-              <li class="nav-item ">
-                <a class="nav-link" href="stereo-book">The Stereo Bar</a>
+              <li class="nav-item">
+                <a class="nav-link" href="view-village-book">จองโต๊ะ</a>
               </li>
               <% if (isAdmin) { %>
-              <li class="nav-item active">
-                <a class="nav-link" href="add-member">จัดการสมาชิก <span class="sr-only">(current)</span> </a>
+              <li class="nav-item ">
+                <a class="nav-link" href="members">จัดการสมาชิก  </a>
               </li>
               <% } %>
             </ul>
             <div class="user_option" style="color: rgb(230, 152, 8); margin-top: 15px;">
               <p>สวัสดี, <%= username %></p>
-
+              
               <% if (isLogin) { %>
                 <a href="/logout" class="btn btn-primary" style="margin-bottom: 15px;">Logout</a>
               <% } %>
@@ -118,68 +86,105 @@
     <!-- end header section -->
   </div>
 
-  <div class="container py-5">
+  <div class="p-6 bg-gray-100 min-h-screen">
 
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold">Members</h2>
+    <!-- === DASHBOARD CARDS ROW === -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-        <a href="/add-member" class="btn btn-primary shadow-sm">
-            + Add Member
-        </a>
-    </div>
-
-    <!-- Card -->
-    <div class="card shadow-sm rounded-4">
-        <div class="card-body p-0">
-
-            <table class="table table-hover mb-0 align-middle">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Username</th>
-                        <th>Email</th>
-                        <th>Created At</th>
-                        <th class="text-center">Action</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    <% members.forEach(member => { %>
-                        <tr>
-                            <td><%= member.username %></td>
-                            <td><%= member.email %></td>
-                            <td><%= member.createdAt.toLocaleString() %></td>
-                            <td class="text-center">
-
-                                <a href="/edit-member/<%= member._id %>" 
-                                   class="btn btn-sm btn-outline-primary me-2">
-                                   Edit
-                                </a>
-
-                                <a href="/delete-member/<%= member._id %>" 
-                                   class="btn btn-sm btn-outline-danger"
-                                   onclick="return confirm('Delete this member?');">
-                                   Delete
-                                </a>
-
-                            </td>
-                        </tr>
-                    <% }) %>
-                </tbody>
-            </table>
-
+      <!-- Today Check-in -->
+      <div class="bg-white rounded-2xl shadow-md p-6 flex items-center gap-4">
+        <div class="w-14 h-14 flex items-center justify-center bg-green-100 text-green-600 rounded-full">
+          <i class="fas fa-door-open text-2xl"></i>
         </div>
+        <div>
+          <p class="text-gray-500 text-sm">Today Check-in</p>
+          <p class="text-3xl font-bold"><%= todayCheckin %> / <%= todayTotalBookings %></p>
+          <p class="text-xs text-green-600 mt-1">Updated Today</p>
+        </div>
+      </div>
+
+      <!-- Bookings This Month -->
+      <div class="bg-white rounded-2xl shadow-md p-6 flex items-center gap-4">
+        <div class="w-14 h-14 flex items-center justify-center bg-blue-100 text-blue-600 rounded-full">
+          <i class="fas fa-calendar text-2xl"></i>
+        </div>
+        <div>
+          <p class="text-gray-500 text-sm">Bookings This Month</p>
+          <p class="text-3xl font-bold"><%= monthlyBookings %></p>
+          <p class="text-xs text-blue-600 mt-1">Current month</p>
+        </div>
+      </div>
+
+      <!-- Total Bookings 2026 -->
+      <div class="bg-white rounded-2xl shadow-md p-6 flex items-center gap-4">
+        <div class="w-14 h-14 flex items-center justify-center bg-indigo-100 text-indigo-600 rounded-full">
+          <i class="fas fa-hotel text-2xl"></i>
+        </div>
+        <div>
+          <p class="text-gray-500 text-sm">Total Bookings (2026)</p>
+          <p class="text-3xl font-bold"><%= totalBookingsThisYear %></p>
+          <p class="text-xs text-indigo-600 mt-1">Year 2026</p>
+        </div>
+      </div>
+
     </div>
 
-</div>
+    <!-- === BAR CHART SECTION === -->
+    <div class="bg-white p-6 rounded-2xl shadow-md mt-10">
+      <h2 class="text-xl font-semibold mb-4 text-gray-700">Monthly Booking Summary</h2>
+      <canvas id="bookingBarChart" height="120"></canvas>
+    </div>
 
-    
-
-</div>
+  </div>
 
 
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+      const labels = JSON.parse('<%- JSON.stringify(monthLabels) %>');
+      const bookedData = JSON.parse('<%- JSON.stringify(bookedCounts) %>');
+      const checkinData = JSON.parse('<%- JSON.stringify(checkinCounts) %>');
+  </script>
+
+  <script>
+    const monthNames = [
+      "Jan","Feb","Mar","Apr","May","Jun",
+      "Jul","Aug","Sep","Oct","Nov","Dec"
+    ];
+
+  const ctx = document.getElementById("bookingBarChart").getContext("2d");
+
+  new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "Booked",
+          data: bookedData,
+          backgroundColor: "rgba(59, 130, 246, 0.8)"  // Blue
+        },
+        {
+          label: "Check-in",
+          data: checkinData,
+          backgroundColor: "rgba(16, 185, 129, 0.8)"  // Green
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: "top" } },
+      scales: {
+        x: { stacked: true },
+        y: { stacked: true, beginAtZero: true }
+      }
+    }
+  });
+</script>
+
+  
+
 
   <!-- jQery -->
   <script src="js/jquery-3.4.1.min.js"></script>

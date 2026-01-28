@@ -13,7 +13,7 @@
   <meta name="author" content="" />
   <link rel="shortcut icon" href="images/favicon.png" type="">
 
-  <title> Feane </title>
+  <title> The View </title>
 
   <!-- bootstrap core css -->
   <link rel="stylesheet" type="text/css" href="css/bootstrap.css" />
@@ -36,7 +36,7 @@
 
   <div class="hero_area">
     <div class="bg-box">
-      <img src="images/hero-bg.jpg" alt="">
+      <img src="images/bg-4.jpg" alt="">
     </div>
     <!-- header section strats -->
     <header class="header_section">
@@ -44,7 +44,7 @@
         <nav class="navbar navbar-expand-lg custom_nav-container ">
           <a class="navbar-brand" href="/">
             <span>
-              The View Village
+              The View
             </span>
           </a>
 
@@ -54,121 +54,83 @@
 
           <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav  mx-auto ">
-              <li class="nav-item">
-                <a class="nav-link" href="booking-list">Reservation</a>
+              <li class="nav-item ">
+                <a class="nav-link" href="view-village-book">The View Village</a>
               </li>
-              <li class="nav-item">
-                <a class="nav-link" href="dashboard">Dashboard</a>
+              <li class="nav-item ">
+                <a class="nav-link" href="viewbar-book">The View Bar</a>
+              </li>
+              <li class="nav-item ">
+                <a class="nav-link" href="coolly-chef-book">Coolly Chef</a>
+              </li>
+              <li class="nav-item ">
+                <a class="nav-link" href="stereo-book">The Stereo Bar</a>
               </li>
               <% if (isAdmin) { %>
               <li class="nav-item ">
-                <a class="nav-link" href="members">Manage Staffs  </a>
+                <a class="nav-link" href="members">จัดการสมาชิก  </a>
               </li>
               <% } %>
-              <!-- <li class="nav-item">
-                <a class="nav-link" href="book">Book Table</a>
-              </li> -->
+        
             </ul>
             <div class="user_option" style="color: rgb(230, 152, 8); margin-top: 15px;">
-              <p>Welcome, <%= username %></p>
+              <p>สวัสดี, <%= username %></p>
 
               <% if (isLogin) { %>
                 <a href="/logout" class="btn btn-primary" style="margin-bottom: 15px;">Logout</a>
               <% } %>
             </div>
-            <!-- <div class="user_option">
 
-              <a href="book" class="order_online">
-                Book Now
-              </a>
-            </div> -->
           </div>
         </nav>
       </div>
     </header>
     <!-- end header section -->
-    <!-- slider section -->
-    <section class="slider_section ">
-      <div id="customCarousel1" class="carousel slide" data-ride="carousel">
-        <div class="carousel-inner">
-          <div class="carousel-item active">
-            <div class="container ">
-              <div class="row">
-                <div class="col-md-7 col-lg-6 ">
-                  <div class="detail-box">
-                    <h1>
-                      Restaurant & Karaoke
-                    </h1>
-                    <p>
-                      Reservation management system/ For handling confirmations and cancellations booking management.
-                    </p>
-                    <div class="btn-box">
-                      <a href="book" class="btn1">
-                        Book Now
-                      </a>
-                    </div>
-                  </div>
-                </div>
+    
+    <!-- 🔲 TILE NAVIGATION SECTION -->
+    <section class="slider_section">
+      <div class="container">
+        <div class="row">
+
+          <div class="col-md-6 col-sm-6 mb-4">
+            <a href="/view-village-book" class="tile-card">
+              <img src="images/the-view-village.webp" alt="The View Bar">
+              <div class="tile-overlay">
+                <h3>The View Village</h3>
               </div>
-            </div>
+            </a>
           </div>
-          <div class="carousel-item ">
-            <div class="container ">
-              <div class="row">
-                <div class="col-md-7 col-lg-6 ">
-                  <div class="detail-box">
-                    <h1>
-                      Restaurant & Karaoke
-                    </h1>
-                    <p>
-                      Reservation management system/ For handling confirmations and cancellations booking management.
-                    </p>
-                    <div class="btn-box">
-                      <a href="book" class="btn1">
-                        Book Now
-                      </a>
-                    </div>
-                  </div>
-                </div>
+
+          <div class="col-md-6 col-sm-6 mb-4">
+            <a href="/viewbar-book" class="tile-card">
+              <img src="images/the-view-bar.webp" alt="Restaurant">
+              <div class="tile-overlay">
+                <h3>The View Bar</h3>
               </div>
-            </div>
+            </a>
           </div>
-          <div class="carousel-item">
-            <div class="container ">
-              <div class="row">
-                <div class="col-md-7 col-lg-6 ">
-                  <div class="detail-box">
-                    <h1>
-                      Restaurant & Karaoke
-                    </h1>
-                    <p>
-                      Reservation management system/ For handling confirmations and cancellations booking management.
-                    <div class="btn-box">
-                      <a href="book" class="btn1">
-                        Book Now
-                      </a>
-                    </div>
-                  </div>
-                </div>
+
+          <div class="col-md-6 col-sm-6 mb-4">
+            <a href="/stereo-book" class="tile-card">
+              <img src="images/stereo-bar.webp" alt="Karaoke">
+              <div class="tile-overlay">
+                <h3>The Stereo Bar</h3>
               </div>
-            </div>
+            </a>
           </div>
-        </div>
-        <div class="container">
-          <ol class="carousel-indicators">
-            <li data-target="#customCarousel1" data-slide-to="0" class="active"></li>
-            <li data-target="#customCarousel1" data-slide-to="1"></li>
-            <li data-target="#customCarousel1" data-slide-to="2"></li>
-          </ol>
+
+          <div class="col-md-6 col-sm-6 mb-4">
+            <a href="/coolly-chef-book" class="tile-card">
+              <img src="images/coolly-chef.webp" alt="Dashboard">
+              <div class="tile-overlay">
+                <h3>Coolly Chef Restaurant</h3>
+              </div>
+            </a>
+          </div>
         </div>
       </div>
-
     </section>
-    <!-- end slider section -->
   </div>
-
-  
-
   
 
   <%- include('footer.ejs')%>

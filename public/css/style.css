@@ -4,6 +4,8 @@ body {
   color: #0c0c0c;
   background-color: #ffffff;
   overflow-x: hidden;
+  height: 100%;
+  margin: 0;
 }
 
 .layout_padding {
@@ -103,18 +105,20 @@ a:focus {
 }
 
 .bg-box {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
+  z-index: -1;
 }
 
 .bg-box img {
   width: 100%;
   height: 100%;
-  -o-object-fit: cover;
-     object-fit: cover;
+  object-fit: cover;
+  /* -o-object-fit: cover;
+     object-fit: cover; */
 }
 
 .sub_page .hero_area {
@@ -140,6 +144,13 @@ a:focus {
 
 .header_section {
   padding: 15px 0;
+  position: relative;
+  z-index: 2;
+}
+
+.booking-section {
+  position: relative;
+  z-index: 2;
 }
 
 .header_section .container-fluid {
@@ -902,9 +913,24 @@ a:focus {
 .footer_section {
   background-color: #222831;
   color: #ffffff;
-  padding: 75px 0 40px 0;
+  /* padding: 75px 0 40px 0; */
+  padding: 75px 0 40px;
+  text-align: center;
+  margin: 0;
+  width: 100%;
+}
+
+/* .footer_section .container {
+  max-width: 100%;
+} */
+
+.footer_container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 15px;
   text-align: center;
 }
+
 
 .footer_section h4 {
   font-size: 28px;
@@ -1005,3 +1031,109 @@ a:focus {
   color: inherit;
 }
 /*# sourceMappingURL=style.css.map */
+
+/* =========================
+   FLOORPLAN OVERLAY
+========================= */
+
+
+.bg-box img {
+  object-fit: cover;
+  height: 100vh;
+}
+
+/* overlay container */
+.floorplan-overlay {
+  position: relative;   /* NOT absolute */
+  z-index: 2;
+  padding-top: 10px;   /* below navbar */
+  padding-bottom: 40px;
+}
+
+/* title */
+.floor-title {
+  text-align: center;
+  color: #fff;
+  font-weight: bold;
+  margin-bottom: 12px;
+  text-shadow: 0 2px 6px rgba(0,0,0,.6);
+}
+
+.date-card {
+  width: 260px;
+  margin: 0 auto 16px;
+  padding: 12px 16px;
+
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(8px);
+
+  border-radius: 12px;
+  text-align: center;
+  color: #fff;
+}
+
+.date-card label {
+  font-size: 13px;
+  display: block;
+  margin-bottom: 6px;
+  opacity: 0.85;
+}
+
+.date-card input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+  font-weight: 600;
+}
+
+/* TILE SECTION */
+.tile-section {
+  padding: 80px 0;
+  background-color: #f9f9f9;
+}
+
+/* Tile Card */
+.tile-card {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: 12px;
+  height: 260px;
+}
+
+/* Tile Image */
+.tile-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+/* Overlay */
+.tile-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  transition: background 0.4s ease;
+}
+
+/* Hover Effects */
+.tile-card:hover img {
+  transform: scale(1.1);
+}
+
+.tile-card:hover .tile-overlay {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+
+

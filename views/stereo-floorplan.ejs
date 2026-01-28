@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- <meta name="viewport" content="width=device-width, initial-scale=1.0"> -->
+  <!-- <title>Select Table</title> -->
+  <link rel="stylesheet" href="/css/floor.css">
+
+  <!-- Basic -->
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <!-- Mobile Metas -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <!-- Site Metas -->
+  <meta name="keywords" content="" />
+  <meta name="description" content="" />
+  <meta name="author" content="" />
+  <link rel="shortcut icon" href="images/favicon.png" type="">
+
+  <title>Stereo Bar </title>
+
+  <!-- bootstrap core css -->
+  <link rel="stylesheet" type="text/css" href="css/bootstrap.css" />
+
+  <!--owl slider stylesheet -->
+  <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css" />
+  <!-- nice select  -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-nice-select/1.1.0/css/nice-select.min.css" integrity="sha512-CruCP+TD3yXzlvvijET8wV5WxxEh5H8P4cmz0RFbKK6FlZ2sYl3AEsKlLPHbniXKSrDdFewhbmBK5skbdsASbQ==" crossorigin="anonymous" />
+  <!-- font awesome style -->
+  <link href="css/font-awesome.min.css" rel="stylesheet" />
+
+  <!-- Custom styles for this template -->
+  <link href="css/style.css" rel="stylesheet" />
+  <!-- responsive style -->
+  <link href="css/responsive.css" rel="stylesheet" />
+  
+</head>
+<body>
+  <div class="hero_area">
+    <div class="bg-box">
+      <img src="images/hero-bg.jpg" alt="">
+    </div>
+
+    <!-- header section strats -->
+    <header class="header_section">
+      <div class="container">
+        <nav class="navbar navbar-expand-lg custom_nav-container ">
+          <a class="navbar-brand" href="/">
+            <span>
+              The Stereo Bar
+            </span>
+          </a>
+
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class=""> </span>
+          </button>
+
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav  mx-auto " style="padding-left: 10%;">
+              <li class="nav-item">
+                <a class="nav-link" href="stereo-booking-list">รายชื่อลูกค้า</a>
+              </li>
+              <li class="nav-item ">
+                <a class="nav-link" href="stereo-dashboard">กราฟสถิติ </a>
+              </li>
+              <li class="nav-item active">
+                <a class="nav-link" href="stereo-book">จองโต๊ะ <span class="sr-only">(current)</span></a>
+              </li>
+              <% if (isAdmin) { %>
+              <li class="nav-item ">
+                <a class="nav-link" href="members">จัดการสมาชิก  </a>
+              </li>
+              <% } %>
+            </ul>
+            <div class="user_option" style="color: rgb(230, 152, 8); margin-top: 15px;">
+              <p>สวัสดี, <%= username %></p>
+
+              <% if (isLogin) { %>
+                <a href="/logout" class="btn btn-primary" style="margin-bottom: 15px;">Logout</a>
+              <% } %>
+            </div>
+          </div>
+        </nav>
+      </div>
+    </header>
+    <!-- end header section -->
+
+    <!-- 🔥 FLOORPLAN OVERLAY -->
+    <div class="floorplan-overlay"> 
+
+      <div class="date-card">
+        <label for="datePicker">Select Date</label>
+        <input
+          type="date"
+          id="datePicker"
+          value="<%= today %>"
+          min="<%= today %>"
+        >
+      </div>
+
+      <div id="stereo-floor" class="floor-container"></div>
+      <div id="tooltip" class="tooltip"></div>
+    </div>
+  </div>
+
+  <!-- 🔽 CUSTOMER INFO SECTION -->
+  <section class="booking-section">
+
+  <h3 style="color: azure;">Customer Information</h3>
+
+  <div class="form">
+    <input type="text" id="name" placeholder="Name" required>
+    <input type="tel" id="phone" inputmode="numeric" pattern="^(0[0-9]{9}|\+66[0-9]{9})$"  value="" placeholder="Ex: 0812345678" required>
+
+    <select id="timePicker" required>
+      <option value="">Select Time</option>
+    </select>
+
+    <input type="number" id="amount" placeholder="Amount" required>
+    <textarea id="remark" placeholder="Remark (optional)"></textarea>
+  </div>
+
+  <button id="confirm">Confirm</button>
+  
+
+</section>
+
+<div id="successModal" class="success-modal">
+  <div class="success-box">
+    <div class="success-icon">✓</div>
+    <h2>Reservation Confirmed</h2>
+    <p>จองโต๊ะสำเร็จ</p>
+  </div>
+</div>
+
+<div id="errorModal" class="error-modal">
+  <div class="error-box">
+    <div class="error-icon">✕</div>
+    <h2>Reservation Failed</h2>
+    <p id="errorMessage">มีข้อผิดพลาดเกิดขึ้น</p>
+    <button class="error-btn" onclick="closeErrorModal()">กรุณาลองใหม่อีกครั้ง</button>
+  </div>
+</div>
+
+
+
+
+
+<script>
+  const tables = JSON.parse('<%- JSON.stringify(tables) %>');
+  const staticElements = JSON.parse('<%- JSON.stringify(staticElements) %>');
+</script>
+
+<script src="/js/stereo-floor.js"></script>
+
+
+</body>
+</html>

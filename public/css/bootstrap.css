@@ -5941,7 +5941,7 @@ a.close.disabled {
   }
 }
 
-.tooltip {
+/* .tooltip {
   position: absolute;
   z-index: 1070;
   display: block;
@@ -5963,7 +5963,7 @@ a.close.disabled {
   font-size: 0.875rem;
   word-wrap: break-word;
   opacity: 0;
-}
+} */
 
 .tooltip.show {
   opacity: 0.9;

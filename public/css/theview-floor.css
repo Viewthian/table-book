@@ -1,0 +1,408 @@
+/* Base style for ALL static floor elements */
+/* =========================
+   GLOBAL
+========================= */
+body {
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: linear-gradient(180deg, #eaeaea, #f7f7f7);
+  margin: 0;
+  padding: 20px;
+  color: #333;
+}
+
+h2, h3 {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+/* common static element style */
+#view-village-floor {
+  position: relative;
+  width: 100%;
+  max-width: 1300px;
+  aspect-ratio: 16 / 9;
+  margin: 20px auto;
+  background:
+    linear-gradient(135deg, #fafafa 25%, #f0f0f0 25%, #f0f0f0 50%, #fafafa 50%, #fafafa 75%, #f0f0f0 75%);
+  background-size: 40px 40px;
+  border-radius: 14px;
+  border: 2px solid #bbb;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  overflow: hidden;
+  z-index: 6;
+}   
+
+.floor-container {
+  position: relative;
+  width: 100%;
+  max-width: 1200px;
+  aspect-ratio: 16 / 9;
+  margin: 20px auto;
+  background:
+    linear-gradient(135deg, #fafafa 25%, #f0f0f0 25%, #f0f0f0 50%, #fafafa 50%, #fafafa 75%, #f0f0f0 75%);
+  background-size: 40px 40px;
+  border-radius: 14px;
+  border: 2px solid #bbb;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  overflow: hidden;
+  z-index: 5;
+}
+
+.circle-label {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  background: #e53935;           /* red */
+  color: #fff;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+  
+}
+
+/* =========================
+   TABLE BASE
+========================= */
+.table {
+  position: absolute;
+  width: 42px;
+  height: 30px;
+  border-radius: 6px;
+  background: #ffffff;
+  border: 1px solid #333;
+  text-align: center;
+  line-height: 30px;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+  pointer-events: auto;
+  z-index: 10;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+}
+
+/* hover */
+.table:not(.reserved):hover {
+  transform: scale(1.08);
+  background: #686666;
+}
+
+/* =========================
+   TABLE SHAPES
+========================= */
+.table.square {
+  width: 25px;
+  height: 20px;
+  height: px;
+  line-height: 25px;
+}
+
+.table.long {
+  width: 28px;
+  height: 18px;
+  line-height: 28px;
+}
+
+.table.verticle {
+  width: 30px;
+  height: 21px;
+  line-height: 28px;
+}
+
+.table.karaoke {
+  width: 50px;
+  height: 51px;
+  line-height: 28px;
+}
+
+
+/* =========================
+   ROTATED TABLES
+========================= */
+.table.rotate-45 {
+  transform: rotate(45deg);
+}
+
+.table.rotate-45 > span {
+  display: block;
+  transform: rotate(-45deg);
+}
+
+.table.table-label {
+  display: block;
+  transform: rotate(calc(-1 * var(--r, 0deg)));
+}
+
+/* =========================
+   TABLE STATES
+========================= */
+.table.selected {
+  background: linear-gradient(180deg, #19c56b, #0fa958);
+  color: #f1eded;
+  border-color: #1a6925;
+}
+
+.table.reserved {
+  background: #444444;
+  color: #ffffff;
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.vv-floor-element,
+.vv-kitchen,
+.vv-bar,
+.vv-cashier,
+.vv-wine-cellar,
+.vv-seafood-kitchen,
+.vv-stage,
+.vv-karaoke-zone,
+.vv-entrance,
+.vv-lobby,
+.vv-parking,
+.vv-toilet,
+.vv-i5,
+.vv-i7 {
+  position: absolute;
+  background: #111;
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  text-align: center;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 10px;
+  letter-spacing: 1px;
+  user-select: none;
+}
+
+/* Top service blocks (BAR / CASHIER / KITCHEN) */
+.vv-bar { border-radius: 14px 0 0 14px; }
+.vv-cashier { border-radius: 0; }
+.vv-kitchen { border-radius: 0 14px 14px 0; }
+
+
+.vv-wine-cellar,
+.vv-seafood-kitchen {
+  border-radius: 14px;
+  transform: rotate(25deg);
+}
+
+/* Stage (center polygon look) */
+.vv-stage {
+  background: #000;
+  clip-path: polygon(
+    30% 0%,
+    70% 0%,
+   100% 20%,
+    80% 60%,
+    20% 60%,
+    0% 20%
+  );
+  font-size: 12px;
+  transform: rotate(30deg);
+}
+
+/* Karaoke Zone (big outline + text) */
+.vv-karaoke-zone1 {
+  background: transparent;
+  border: 3px solid #000;
+  color: #000;
+  font-size: 14px;
+  font-weight: 800;
+  border-radius: 2px;
+  transform: rotate(-25deg);
+}
+
+.vv-karaoke-zone2 {
+  background: transparent;
+  border: 3px solid #000;
+  color: #000;
+  font-size: 14px;
+  font-weight: 800;
+  border-radius: 12px;
+  transform: rotate(-30deg);
+}
+
+/* Entrance + Lobby */
+.vv-entrance {
+  background: #fff;
+  color: #000;
+  border: 1px solid #000;
+  font-weight: 800;
+  transform: rotate(65deg);
+}
+
+.vv-lobby {
+  background: #fff;
+  color: #000;
+  border: 1px solid #000;
+  font-weight: 800;
+  transform: rotate(-65deg);
+}
+
+.vv-i5 {
+  background: #fff;
+  color: #000;
+  border: 1px solid #000;
+  font-weight: 800;
+  transform: rotate(-25deg);
+}
+
+.vv-i7 {
+  background: #fff;
+  color: #000;
+  border: 1px solid #000;
+  font-weight: 800;
+  transform: rotate(0deg);
+}
+
+/* Parking label (no box) */
+.vv-parking {
+  background: none;
+  color: #000;
+  font-size: 16px;
+  font-weight: 900;
+  transform: rotate(0deg);
+}
+
+.ka {
+  background: none;
+  color: #000;
+  font-size: 16px;
+  font-weight: 900;
+  transform: rotate(25deg);
+}
+
+/* Toilet (if you want icon style later) */
+.vv-toilet {
+  background: #000;
+  border-radius: 1px;
+  font-size: 11px;
+  transform: rotate(-20deg);
+}
+
+.vv-toilet.section1 {
+  background: #000;
+  border-radius: 1px;
+  font-size: 11px;
+  transform: rotate(35deg);
+}
+
+.vv-toilet.section2 {
+  background: #000;
+  border-radius: 1px;
+  font-size: 11px;
+  transform: rotate(60deg);
+}
+
+.vv-toilet.section3 {
+  background: #000;
+  border-radius: 1px;
+  font-size: 11px;
+  transform: rotate(-50deg);
+}
+
+.vv-toilet.section4 {
+  background: #000;
+  border-radius: 1px;
+  font-size: 11px;
+  transform: rotate(155deg);
+}
+
+.vv-toilet.section5 {
+  background: #000;
+  border-radius: 1px;
+  font-size: 11px;
+  transform: rotate(155deg);
+}
+
+.line {
+  position: absolute;
+  background: #202020;
+  border-radius: 2px;
+}
+
+.line.vertical {
+  width: 4px;
+  height: 120px;
+}
+
+.line.horizontal {
+  height: 4px;
+  width: 300px;
+}
+
+.line.horizontal25degree {
+  height: 4px;
+  width: 300px;
+  transform: rotate(25deg);
+}
+
+.line.horizontal35degree {
+  height: 4px;
+  width: 300px;
+  transform: rotate(35deg);
+}
+
+.line.horizontal40degree {
+  height: 4px;
+  width: 300px;
+  transform: rotate(40deg);
+}
+
+.line.horizontal45degree {
+  height: 4px;
+  width: 300px;
+  transform: rotate(45deg);
+}
+
+.line.horizontal60degree {
+  height: 4px;
+  width: 300px;
+  transform: rotate(60deg);
+}
+
+.line.horizontal90degree {
+  height: 4px;
+  width: 300px;
+  transform: rotate(90deg);
+}
+
+.line.horizontal130degree {
+  height: 4px;
+  width: 300px;
+  transform: rotate(130deg);
+}
+
+.line.horizontal155degree {
+  height: 4px;
+  width: 300px;
+  transform: rotate(155deg);
+}
+
+.line.horizontal155degree {
+  height: 4px;
+  width: 300px;
+  transform: rotate(155deg);
+
+.line.text-label {
+  position: absolute;
+  background: #202020;
+  border-radius: 2px;
+  transform: rotate(155deg);
+}
+}
+
+
+

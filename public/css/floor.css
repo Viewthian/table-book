@@ -1,0 +1,637 @@
+/* =========================
+   GLOBAL
+========================= */
+body {
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: linear-gradient(180deg, #eaeaea, #f7f7f7);
+  margin: 0;
+  padding: 20px;
+  color: #333;
+}
+
+h2, h3 {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.text {
+  text-align: center;
+  margin-bottom: 10px;
+  position: absolute;
+  font-size: 18px;
+  color: white;
+  /* border: 2px solid #000; */
+  /* background: #000; */
+  z-index: 16;
+  transform: rotate(-45deg);
+}
+
+
+/* =========================
+   FLOOR CONTAINER
+========================= */
+#floor,
+#coolly-floor {
+  position: relative;
+  width: 100%;
+  max-width: 1200px;
+  aspect-ratio: 16 / 9;
+  margin: 20px auto;
+  background:
+    linear-gradient(135deg, #fafafa 25%, #f0f0f0 25%, #f0f0f0 50%, #fafafa 50%, #fafafa 75%, #f0f0f0 75%);
+  background-size: 40px 40px;
+  border-radius: 14px;
+  border: 2px solid #bbb;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  overflow: hidden;
+  z-index: 6;
+}   
+
+.floor-container {
+  position: relative;
+  width: 100%;
+  max-width: 1200px;
+  aspect-ratio: 16 / 9;
+  margin: 20px auto;
+  background:
+    linear-gradient(135deg, #fafafa 25%, #f0f0f0 25%, #f0f0f0 50%, #fafafa 50%, #fafafa 75%, #f0f0f0 75%);
+  background-size: 40px 40px;
+  border-radius: 14px;
+  border: 2px solid #bbb;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  overflow: hidden;
+  z-index: 5;
+}
+
+/* =========================
+   TABLE BASE
+========================= */
+.table {
+  position: absolute;
+  width: 42px;
+  height: 30px;
+  border-radius: 6px;
+  background: #ffffff;
+  border: 2px solid #333;
+  text-align: center;
+  line-height: 30px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+  pointer-events: auto;
+  z-index: 10;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+}
+
+/* hover */
+.table:not(.reserved):hover {
+  transform: scale(1.08);
+  background: #525050;
+  color: white;
+}
+
+/* =========================
+   TABLE SHAPES
+========================= */
+.table.square {
+  width: 36px;
+  height: 36px;
+  line-height: 36px;
+}
+
+.table.long {
+  width: 28px;
+  height: 52px;
+  line-height: 28px;
+}
+
+.table.verticle {
+  width: 52px;
+  height: 28px;
+  line-height: 28px;
+}
+
+.table.circle {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  line-height: 28px;
+}
+
+
+/* =========================
+   ROTATED TABLES
+========================= */
+.table.rotate-45 {
+  transform: rotate(45deg);
+}
+
+.table.rotate-45 > span {
+  display: block;
+  transform: rotate(-45deg);
+}
+
+/* =========================
+   TABLE STATES
+========================= */
+.table.selected {
+  background: linear-gradient(180deg, #19c56b, #0fa958);
+  color: #fff;
+  border-color: #0b7d40;
+}
+
+.table.reserved {
+  background: #9e9e9e;
+  color: #fff;
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+/* =========================
+   STATIC ELEMENTS
+========================= */
+.stage,
+.kitchen,
+.bar,
+.cashier,
+.wine,
+.sofa {
+  position: absolute;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #444, #2c2c2c);
+  color: #fff;
+  text-align: center;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bar-background {
+  position: absolute;
+  background: #fff;
+  text-align: center;
+  color: #000;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(0deg);
+  z-index: 16;
+}
+
+.circle-label {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: #f8f6f6;
+  color: #fff;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid #0c0c0c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+  
+}
+
+.sofa-2 {
+  position: absolute;
+  border-radius: 2px 2px 0 0;
+  background: linear-gradient(180deg, #f3f0f0, #f1f0f0);
+  color: #0c0c0c;
+  text-align: center;
+  font-size: 6px;
+  font-weight: normal;
+  letter-spacing: 0.5px;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sofa-small {
+  position: absolute;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #f3f0f0, #f1f0f0);
+  color: #0c0c0c;
+  text-align: center;
+  font-size: 6px;
+  font-weight: normal;
+  letter-spacing: 0.5px;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+/* Sofa softer look */
+.sofa {
+  background: linear-gradient(180deg, #6b4f3f, #4b3629);
+}
+
+
+/* Man Icon */
+.restroom.men::before {
+  content: "";
+  position: absolute;
+  top: 18%;
+  left: 50%;
+  width: 18%;
+  height: 18%;
+  background: #000;
+  border-radius: 50%;
+  transform: translateX(-50%);
+}
+
+.restroom.men::after {
+  content: "";
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  width: 22%;
+  height: 40%;
+  background: #000;
+  border-radius: 4px;
+  transform: translateX(-50%);
+}
+
+/* Women Icon */
+.restroom.women::before {
+  content: "";
+  position: absolute;
+  top: 18%;
+  left: 50%;
+  width: 18%;
+  height: 18%;
+  background: #000;
+  border-radius: 50%;
+  transform: translateX(-50%);
+}
+
+.restroom.women::after {
+  content: "";
+  position: absolute;
+  top: 38%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-left: 18px solid transparent;
+  border-right: 18px solid transparent;
+  border-top: 45px solid #000;
+  transform: translateX(-50%);
+}
+
+
+.restroom {
+  position: absolute;
+  border: 1px solid #f8f5f5;
+  border-radius: 1px;
+  background-color: white;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 60%;
+}
+
+/* .restroom {
+  position: absolute;
+  border: 1px solid #000;
+  background: white;
+} */
+
+.restroom.men,
+.restroom.women {
+  position: absolute;
+}
+
+
+
+.triangle {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-top: 120px solid transparent;
+  border-bottom: 120px solid transparent;
+  border-right: 120px solid #0a0a0a;
+  background: linear-gradient(180deg, #444, #2c2c2c);
+  color: #fff;
+  text-align: center;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(45deg);
+  z-index: 15;
+}
+
+/* man */
+/* .restroom.men {
+  background-image: url("../images/man.png");
+} */
+
+/* woman */
+/* .restroom.women {
+  background-image: url("../images/woman.png");
+} */
+
+/* =========================
+   WALLS / LINES
+========================= */
+.line {
+  position: absolute;
+  background: #a5a3a3;
+  border-radius: 2px;
+}
+
+.line.vertical {
+  width: 4px;
+  height: 120px;
+}
+
+.line.horizontal {
+  height: 4px;
+  width: 300px;
+}
+
+.line.emergency {
+  height: 4px;
+  width: 60px;
+  background: #d32f2f;
+}
+
+.line.vertical-emergency {
+  width: 4px;
+  height: 80px;
+  background: #d32f2f;
+}
+
+/* =========================
+   LABELS
+========================= */
+.label {
+  position: absolute;
+  font-size: 11px;
+  font-weight: bold;
+  color: #333;
+}
+
+/* =========================
+   TOOLTIP
+========================= */
+.tooltip {
+  position: absolute;
+  display: none;
+  background: rgba(0,0,0,0.85);
+  color: #fff;
+  padding: 8px 10px;
+  font-size: 11px;
+  border-radius: 6px;
+  z-index: 99999999999999999;
+  pointer-events: none;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+}
+
+/* =========================
+   FORM
+========================= */
+.form {
+  max-width: 420px;
+  margin: 30px auto;
+  padding: 20px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.form input,
+.form select,
+.form textarea {
+  padding: 10px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+/* =========================
+   BUTTON
+========================= */
+button#confirm {
+  display: block;
+  margin: 30px auto;
+  padding: 12px 26px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(180deg, #1976d2, #125aa3);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+}
+
+button#confirm:hover {
+  background: linear-gradient(180deg, #1e88e5, #1565c0);
+}
+
+.wall-long {
+  position: absolute;
+  border: 2px solid #000;
+  background: #6b6a6a;
+}
+
+.wall-horizontal-short {
+  position: absolute;
+  border: 2px solid #000;
+  background: #000;
+}
+
+.wall-vertical {
+  position: absolute;
+  border: 2px solid #000;
+  background: #000;
+}
+
+.wall-vertical-short {
+  position: absolute;
+  border: 2px solid #000;
+  background: #000;
+}
+
+.line {
+  position: absolute;
+  background: #555454;
+}
+
+.wall-gray {
+  position: absolute;
+  border: 2px solid #000;
+  background: #5f5e5e;
+}
+
+.stage,
+.kitchen,
+.bar,
+.cashier,
+.wine,
+.sofa,
+.sofa-2,
+.sofa-small,
+.wall-long,
+.wall-gray,
+.wall-vertical,
+.wall-vertical-short,
+.wall-horizontal-short,
+.line,
+.restroom {
+  /* pointer-events: none;   🔥 critical */
+  z-index: 13;
+}
+
+.success-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: 9999;
+}
+
+/* show state */
+.success-modal.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.success-box {
+  background: #fff;
+  width: min(90%, 420px);
+  padding: 40px 30px 35px;
+  border-radius: 20px;
+  text-align: center;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.35);
+  animation: pop 0.35s ease;
+}
+
+@keyframes pop {
+  from { transform: scale(0.85); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.success-icon {
+  width: 90px;
+  height: 90px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+  color: #fff;
+  font-size: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.success-box h2 {
+  margin: 10px 0 8px;
+  font-size: 24px;
+  color: #2e7d32;
+}
+
+.success-box p {
+  font-size: 15px;
+  color: #555;
+}
+
+.error-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: 9999;
+}
+
+.error-modal.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.error-box {
+  background: #fff;
+  width: min(90%, 420px);
+  padding: 40px 30px 30px;
+  border-radius: 20px;
+  text-align: center;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.35);
+  animation: pop 0.35s ease;
+}
+
+.error-icon {
+  width: 90px;
+  height: 90px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e53935, #c62828);
+  color: #fff;
+  font-size: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.error-box h2 {
+  margin: 8px 0;
+  font-size: 22px;
+  color: #c62828;
+}
+
+.error-box p {
+  font-size: 14px;
+  color: #555;
+}
+
+.error-btn {
+  margin-top: 18px;
+  padding: 10px 26px;
+  border: none;
+  border-radius: 8px;
+  background: #e53935;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.error-btn:hover {
+  background: #c62828;
+}
+
+input:invalid {
+  border: 2px solid #e53935;
+}
+
+input:valid {
+  border: 2px solid #43a047;
+}

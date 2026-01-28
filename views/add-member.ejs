@@ -13,7 +13,7 @@
   <meta name="author" content="" />
   <link rel="shortcut icon" href="images/favicon.png" type="">
 
-  <title> The View Village </title>
+  <title> The View Staffs </title>
 
   <!-- bootstrap core css -->
   <link rel="stylesheet" type="text/css" href="css/bootstrap.css" />
@@ -69,7 +69,7 @@
         <nav class="navbar navbar-expand-lg custom_nav-container ">
           <a class="navbar-brand" href="/">
             <span>
-              The View
+              The View Staffs
             </span>
           </a>
 
@@ -79,28 +79,33 @@
 
           <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav  mx-auto ">
-              <li class="nav-item">
-                <a class="nav-link" href="booking-list">Reservation</a>
+              <li class="nav-item ">
+                <a class="nav-link" href="view-village-book">The View Village</a>
               </li>
-              <li class="nav-item">
-                <a class="nav-link" href="dashboard">Dashboard </a>
+              <li class="nav-item ">
+                <a class="nav-link" href="viewbar-book">The View Bar</a>
               </li>
-              <li class="nav-item">
-                <a class="nav-link" href="book">Book Table</a>
+              <li class="nav-item ">
+                <a class="nav-link" href="coolly-chef-book">Coolly Chef</a>
               </li>
-              <li class="nav-item active">
-                <a class="nav-link" href="members">Manage Staffs <span class="sr-only">(current)</span> </a>
+              <li class="nav-item ">
+                <a class="nav-link" href="stereo-book">The Stereo Bar</a>
               </li>
+              <% if (isAdmin) { %>
+              <li class="nav-item ">
+                <a class="nav-link" href="members">จัดการสมาชิก  </a>
+              </li>
+              <% } %>
+        
             </ul>
-            <div class="user_option" style="color: rgb(236, 124, 49); margin-top: 15px;">
-              <p>Welcome, <%= username %></p>
+            <div class="user_option" style="color: rgb(230, 152, 8); margin-top: 15px;">
+              <p>สวัสดี, <%= username %></p>
 
               <% if (isLogin) { %>
-                
-                <a href="/logout" class="btn btn-primary">Logout</a>
+                <a href="/logout" class="btn btn-primary" style="margin-bottom: 15px;">Logout</a>
               <% } %>
             </div>
-            
+
           </div>
         </nav>
       </div>
