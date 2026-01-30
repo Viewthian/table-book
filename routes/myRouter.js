@@ -317,51 +317,51 @@ router.get("/add-member", async (req, res) => {
 });
 
 // HANDLE MEMBER CREATION
-// router.post("/add-member", async (req, res) => {
-//   const { username, email, password } = req.body;
+router.post("/add-member", async (req, res) => {
+  const { username, email, password } = req.body;
 
-//   try {
-//     // Check for duplicate username/email
-//     const existing = await memberTable.findOne({ 
-//       $or: [{ username }, { email }] 
-//     });
+  try {
+    // Check for duplicate username/email
+    const existing = await memberTable.findOne({ 
+      $or: [{ username }, { email }] 
+    });
 
-//     if (existing) {
-//       return res.render("add-member", { 
-//         error: "Username or Email already exists.",
-//         success: null
-//       });
-//     }
+    if (existing) {
+      return res.render("add-member", { 
+        error: "Username or Email already exists.",
+        success: null
+      });
+    }
 
-//     // Hash password
-//     const passwordHash = await bcrypt.hash(password, 10);
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 10);
 
-//     // Create new member
-//     await memberTable.create({
-//       username,
-//       email,
-//       passwordHash
-//     });
+    // Create new member
+    await memberTable.create({
+      username,
+      email,
+      passwordHash
+    });
 
-//     return res.render("add-member", { 
-//       success: "Member created successfully!",
-//       error: null,
-//       username: req.session.username,
-//       isAdmin: req.session.isAdmin,
-//       isLogin: req.session.login
-//     });
+    return res.render("add-member", { 
+      success: "Member created successfully!",
+      error: null,
+      username: req.session.username,
+      isAdmin: req.session.isAdmin,
+      isLogin: req.session.login
+    });
 
-//   } catch (err) {
-//     console.error(err);
-//     return res.render("add-member", { 
-//       error: "Something went wrong",
-//       success: null,
-//       username: req.session.username,
-//       isAdmin: req.session.isAdmin,
-//       isLogin: req.session.login
-//     });
-//   }
-// });
+  } catch (err) {
+    console.error(err);
+    return res.render("add-member", { 
+      error: "Something went wrong",
+      success: null,
+      username: req.session.username,
+      isAdmin: req.session.isAdmin,
+      isLogin: req.session.login
+    });
+  }
+});
 
 // router.post('/update-booking', async (req, res) => {
 //     try {
