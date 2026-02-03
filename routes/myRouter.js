@@ -3,7 +3,7 @@ require('dotenv').config();
 const express = require('express')
 const router = express.Router()
 const bcrypt = require("bcrypt");
-// const path = require('path')    //ใช้เพื่ออ้างอิงตำแหน่งไฟล์
+const upload = require("../utils/upload");
 
 //เรียกใช้งาน model
 const bookTable = require('../models/table-booking.js')  
@@ -363,57 +363,6 @@ router.post("/add-member", async (req, res) => {
   }
 });
 
-// router.post('/update-booking', async (req, res) => {
-//     try {
-//         const update_id = req.body.update_id;
-
-//         if (!update_id) {
-//             req.flash("error", "Missing booking ID");
-//             return res.redirect("/booking-list");
-//         }
-
-//         const { reservationDateTime, tableNo } = req.body;
-
-//         const conflict = await checkTimeConflict({
-//             reservationDateTime,
-//             tableNo,
-//             excludeId: update_id
-//         });
-
-//         if (conflict) {
-//             const booking = await bookTable.findById(update_id);
-//             return res.status(400).render("edit-booking", {
-//                 booking,
-//                 messages: { error: ["This table is already booked on this date."] }
-//             });
-//         } 
-
-//         const updatedData = {
-//             name: req.body.name,
-//             phone: req.body.phone,
-//             email: req.body.email,
-//             zone: req.body.zone,
-//             tableNo,
-//             guests: req.body.guests,
-//             reservationDateTime,
-//             note: req.body.note,
-//             createBy: req.body.createBy
-//         };
-
-//         await bookTable.findByIdAndUpdate(update_id, updatedData);
-       
-//     } catch (err) {
-//         console.error("Error updating booking:", err);
-//         req.flash("error", "Something went wrong updating reservation.");
-//         return res.redirect(`/edit-booking/${req.body.update_id}`);
-//     }
-// });
-
-
-// router.get("/edit-booking/:id", async (req, res) => {
-//     const booking = await bookTable.findById(req.params.id);
-//     res.render("edit-booking", { booking, messages: {} });
-// });
 
 // router.get("/delete-booking/:id", async (req, res) => {
 //     try {
@@ -1137,39 +1086,49 @@ router.get("/view-village-availability", async (req, res) => {
 });
 
 //Reseve the view village
-router.post("/reserve-view-village", async (req, res) => {
-  const { name, phone, amount, remark, bookingDateTime, tables } = req.body;
+router.post(
+  "/reserve-view-village",
+  upload.single("image"),
+  async (req, res) => {
+    try {
+      // 🔐 Make sure user is logged in
+      if (!req.session || !req.session.username) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
 
-  if (!name || !phone || !amount || !bookingDateTime || !tables?.length) {
-    return res.status(400).json({ error: "Missing required fields" });
+      const {
+        name,
+        phone,
+        bookingDateTime,
+        amount,
+        transfer,
+        remark,
+        tables
+      } = req.body;
+
+      const booking = new reservationViewVillage({
+        name,
+        phone,
+        bookingDateTime: new Date(bookingDateTime),
+        amount,
+        transfer,
+        remark,
+        createBy: req.session.username, // ✅ FROM SESSION
+        tables: JSON.parse(tables),
+        image: req.file ? `/uploads/${req.file.filename}` : null
+      });
+
+      await booking.save();
+
+      res.json({ success: true });
+
+    } catch (err) {
+      console.error(err);
+      res.status(400).json({ error: err.message });
+    }
   }
+);
 
-  // 🔒 prevent double booking (date + time + table)
-  const conflict = await reservationViewVillage.findOne({
-    bookingDateTime,
-    tables: { $in: tables }
-  });
-
-  if (conflict) {
-    return res.status(409).json({
-      error: "Some tables already reserved for this time"
-    });
-  }
-
-  await reservationViewVillage.create({
-    name,
-    phone,
-    amount,
-    remark,
-    bookingDateTime: new Date(bookingDateTime),
-    tables,
-    bookingId: "BK" + Date.now()
-  });
-
-  console.log(req.body);
-
-  res.json({ success: true });
-});
 
 router.get("/view-village-booking-list", async (req, res) => {
   if (!req.session.login) {
@@ -1414,6 +1373,101 @@ router.get("/view-village-export-csv", async (req, res) => {
     res.status(500).send("Error exporting CSV");
   }
 });
+
+//EDIT RESERVATION
+router.get("/edit-booking-view-village/:id", async (req, res) => {
+  try {
+    if (!req.session || !req.session.username) {
+      return res.status(401).render("login");
+    }
+
+    const booking = await reservationViewVillage.findById(req.params.id).lean();
+
+    if (!booking) {
+      return res.status(404).send("Booking not found");
+    }
+
+    res.render("edit-booking-view-village", {
+      booking,
+      tables: viewVillageTables,
+      staticElements: viewVillageStaticElements,
+      existingTables: booking.tables, // ✅ IMPORTANT
+      image: req.file ? `/uploads/${req.file.filename}` : null,
+      username: req.session.username,
+      isAdmin: req.session.isAdmin,
+      isLogin: req.session.login
+    });
+
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error loading booking");
+  }
+});
+
+
+router.post(
+  "/update-view-village/:id",
+  upload.single("image"),
+  async (req, res) => {
+    try {
+      // 🔐 Auth check
+      if (!req.session || !req.session.username) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const update_id = req.params.id; // ✅ USE PARAM, NOT BODY
+      if (!update_id) {
+        return res.status(400).json({ error: "Missing booking ID" });
+      }
+
+      // ✅ Parse tables safely
+      let tables = [];
+      if (req.body.tables) {
+        try {
+          tables = JSON.parse(req.body.tables);
+        } catch (e) {
+          return res.status(400).json({ error: "Invalid tables data" });
+        }
+      }
+
+      const updatedData = {
+        name: req.body.name,
+        phone: req.body.phone,
+        bookingDateTime: new Date(req.body.bookingDateTime),
+        amount: Number(req.body.amount),
+        transfer: Number(req.body.transfer),
+        remark: req.body.remark,
+        createBy: req.session.username,
+        tables
+      };
+
+      // ✅ Only overwrite image if new one uploaded
+      if (req.file) {
+        updatedData.image = `/uploads/${req.file.filename}`;
+      }
+
+      const updated = await reservationViewVillage.findByIdAndUpdate(
+        update_id,
+        updatedData,
+        { new: true }
+      );
+
+      if (!updated) {
+        return res.status(404).json({ error: "Reservation not found" });
+      }
+
+      res.json({ success: true, data: updated });
+
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+
+
 
 //------------------ Stereo bar Section----------------------//
 router.get("/stereo-book", (req, res) => {

@@ -222,6 +222,38 @@
         background-color: #1e40af; /* blue-700 */
       }
 
+      /* Preview slip on the table */
+      .image-hover-wrapper {
+        position: relative;
+        display: inline-block;
+      }
+
+      .slip-thumb {
+        max-width: 40px;
+        border-radius: 4px;
+        cursor: zoom-in;
+      }
+
+      /* hidden preview */
+      .slip-preview {
+        position: absolute;
+        top: 50%;
+        left: 60px;
+        transform: translateY(-50%);
+        max-width: 350px;
+        max-height: 350px;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        display: none;
+        background: #fff;
+        z-index: 9999;
+      }
+
+      /* show on hover */
+      .image-hover-wrapper:hover .slip-preview {
+        display: block;
+      }
+
 
 
   </style>
@@ -379,19 +411,21 @@
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Name</th>
-                  <th>Phone</th>
+                  <th>ชื่อ</th>
+                  <th>เบอร์โทร</th>
                   <!-- <th>Email</th> -->
                   <!-- <th>Zone</th> -->
-                  <th>Table No</th>
-                  <th>Guests</th>
-                  <th>Date/Time</th>
-                  <th>Note</th>
-                  <th>Status</th>
+                  <th>เลขที่โต๊ะ</th>
+                  <th>จำนวน</th>
+                  <th>วันที่/เวลา</th>
+                  <th>รายละเอียด</th>
+                  <th>สถานะ</th>
 
-                  <th>Check-in</th>
-                  <!-- <th>Edit</th> -->
-                  <th>Delete</th>
+                  <th>เช็คอิน</th>
+                  <th>สลิป</th>
+                  <th>ผู้จอง</th>
+                  <th>แก้ไข</th>
+                  <th>ลบ</th>
                 </tr>
               </thead>
 
@@ -430,9 +464,28 @@
                         <%= b.status === "checkin" ? "checked" : "" %>
                       >
                     </td>
-                    <!-- <td>
-                      <a href="/edit-booking/<%= b._id %>" class="btn-sm btn-edit">Edit</a>
-                    </td> -->
+                    <td data-label="Slip">
+                      <% if (b.image) { %>
+                        <div class="image-hover-wrapper">
+                          <img
+                            src="<%= b.image %>"
+                            class="slip-thumb"
+                            alt="Slip Image"
+                          >
+                          <img
+                            src="<%= b.image %>"
+                            class="slip-preview"
+                            alt="Slip Preview"
+                          >
+                        </div>
+                      <% } else { %>
+                        -
+                      <% } %>
+                    </td>
+                    <td data-label="createBy"><%= b.createBy %></td>
+                    <td>
+                      <a href="/edit-booking-view-village/<%= b._id %>" class="btn-sm btn-edit">Edit</a>
+                    </td>
                     <td>
                       <a href="/delete-view-village-booking/<%= b._id %>"
                         onclick="return confirm('Do you want to delete?')"

@@ -120,20 +120,18 @@ module.exports = [
   { id: "712", x: 43.5, y: 68.5, type: "square", rotate: 0 },
 
   // ===== Karaoke =====
-  { id: "K1", x: 25.4, y: 14, type: "karaoke", rotate: -20 },
-  { id: "K2", x: 21.6, y: 16.5, type: "karaoke", rotate: -20},
-  { id: "K3", x: 17.8, y: 19, type: "karaoke", rotate: -20},
-  { id: "K4", x: 14, y: 21.5, type: "karaoke", rotate: -20 },
-  { id: "K5", x: 8, y: 32, type: "karaoke", rotate: -70 },
-  { id: "K6", x: 6.5, y: 38.7, type: "karaoke", rotate: -70 },
-  { id: "K7", x: 5.1, y: 45.5, type: "karaoke", rotate: -70 },
-  { id: "K8", x: 3.7, y: 52.2, type: "karaoke", rotate: -70 },
-  { id: "K9", x: 4.5, y: 67.5, type: "karaoke", rotate: -40 },
-  { id: "K10", x: 7.2, y: 73.2, type: "karaoke", rotate: -40 },
-  { id: "K11", x: 9.8, y: 79, type: "karaoke", rotate: -40 },
-  { id: "K12", x: 12.4, y: 84.8, type: "karaoke", rotate: -40 }
+  { id: "K1|L", x: 25.4, y: 14, type: "karaoke", rotate: -20 },
+  { id: "K2|S(m)", x: 21.6, y: 16.5, type: "karaoke", rotate: -20},
+  { id: "K3|S(s)", x: 17.8, y: 19, type: "karaoke", rotate: -20},
+  { id: "K4|M", x: 14, y: 21.5, type: "karaoke", rotate: -20 },
+  { id: "K5|S(s)", x: 8, y: 32, type: "karaoke", rotate: -70 },
+  { id: "K6|S(m)", x: 6.5, y: 38.7, type: "karaoke", rotate: -70 },
+  { id: "K7|S(s)", x: 5.1, y: 45.5, type: "karaoke", rotate: -70 },
+  { id: "K8|M", x: 3.7, y: 52.2, type: "karaoke", rotate: -70 },
+  { id: "K9|S(s)", x: 4.5, y: 67.5, type: "karaoke", rotate: -40 },
+  { id: "K10|S(m)", x: 7.2, y: 73.2, type: "karaoke", rotate: -40 },
+  { id: "K11|S(s)", x: 9.8, y: 79, type: "karaoke", rotate: -40 },
+  { id: "K12|M", x: 12.4, y: 84.8, type: "karaoke", rotate: -40 }
   
-
-
 ];
 
