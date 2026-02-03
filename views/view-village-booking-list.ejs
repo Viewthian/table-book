@@ -343,11 +343,6 @@
               </span>
             </p>
 
-
-
-
-        
-
           </div>
           
         </div>
@@ -367,9 +362,6 @@
         <div class="filter-item">
           <label>Sort</label>
           <select name="sort" onchange="this.form.submit()">
-            <!-- <option value="incoming" <%= filter==="incoming"?"selected":"" %>>Incoming</option>
-            <option value="newest" <%= sort==="newest"?"selected":"" %>>Newest</option>
-            <option value="oldest" <%= sort==="oldest"?"selected":"" %>>Oldest</option> -->
             <option value="incoming" <%= sort==="incoming"?"selected":"" %>>Incoming</option>
             <option value="newest" <%= sort==="newest"?"selected":"" %>>Newest</option>
             <option value="oldest" <%= sort==="oldest"?"selected":"" %>>Oldest</option>
@@ -388,15 +380,37 @@
         <input
           style="margin-top: 20px;"
           id="searchBox"
+          name="search"
           type="text"
+          value="<%= search || '' %>"
           placeholder="Search by name or phone…"
           class="px-3 py-2 rounded-lg border w-60 focus:ring focus:ring-blue-200"
         />
+        
 
-        <input type="hidden" name="page" value="<%= currentPage %>">
+
+
+        <!-- <input type="hidden" name="page" value="<%= currentPage %>"> -->
+         <input type="hidden" name="page" value="1">
+
+        <div class="filter-item">
+          <label>Date</label>
+          <input
+            type="date"
+            name="date"
+            value="<%= selectedDate %>"
+            onchange="this.form.submit()"
+            class="px-2 py-1 rounded border"
+          >
+        </div>
 
         <div style="text-align: right; margin-top: 15px;">
-          <a href="/view-village-export-csv" class="export-btn">Export CSV</a>
+          <a
+            href="/view-village-export-csv?<%= new URLSearchParams({ date: selectedDate }) %>"
+            class="export-btn"
+          >
+            Export CSV
+          </a>
         </div>
       </form>
 
@@ -413,8 +427,6 @@
                   <th>#</th>
                   <th>ชื่อ</th>
                   <th>เบอร์โทร</th>
-                  <!-- <th>Email</th> -->
-                  <!-- <th>Zone</th> -->
                   <th>เลขที่โต๊ะ</th>
                   <th>จำนวน</th>
                   <th>วันที่/เวลา</th>
@@ -438,7 +450,10 @@
                   </tr>
                 <% } %>
                 <% bookings.forEach((b, index) => { %>
-                  <tr class="booking-row">
+                  <tr class="booking-row"
+                      data-name="<%= b.name.toLowerCase() %>"
+                      data-phone="<%= String(b.phone) %>">
+
                     <td data-label="#"><%= (currentPage - 1) * limit + index + 1 %></td>
                     <td data-label="Name"><%= b.name %></td>
                     <td data-label="Phone">0<%= b.phone %></td>
@@ -637,7 +652,24 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   </script>
 
+  <script>
+    const searchBox = document.getElementById("searchBox");
+    const bookingRows = document.querySelectorAll(".booking-row");
 
+    searchBox.addEventListener("input", () => {
+      const keyword = searchBox.value.trim().toLowerCase();
+
+      bookingRows.forEach(row => {
+        const name = row.dataset.name;
+        const phone = row.dataset.phone;
+
+        row.style.display =
+          name.includes(keyword) || phone.includes(keyword)
+            ? ""
+            : "none";
+      });
+    });
+  </script>
 
 
 

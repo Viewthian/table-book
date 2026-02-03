@@ -1134,6 +1134,7 @@ router.get("/view-village-booking-list", async (req, res) => {
   if (!req.session.login) {
     return res.render("login");
   }
+
   try {
     const filter = req.query.filter || "incoming";
     const sortParam = req.query.sort || "incoming";
@@ -1143,38 +1144,81 @@ router.get("/view-village-booking-list", async (req, res) => {
 
     const now = new Date();
 
+    const search = req.query.search || "";
+
+    // 🔹 NEW: selected date (default = today)
+    const selectedDate =
+      req.query.date || new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
     let matchStage = {};
 
-    // 🔹 DATE FILTERS (using bookingDateTime)
-    if (filter === "today") {
-      const start = new Date();
-      start.setHours(0, 0, 0, 0);
+    if (search) {
+      matchStage.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { phone: { $regex: search, $options: "i" } }
+      ];
+    }
 
-      const end = new Date();
-      end.setHours(23, 59, 59, 999);
+
+    /* =====================================================
+       🔥 DATE PICKER OVERRIDES FILTER
+    ===================================================== */
+    if (req.query.date) {
+      const start = new Date(`${selectedDate}T00:00:00`);
+      const end   = new Date(`${selectedDate}T23:59:59.999`);
 
       matchStage.bookingDateTime = { $gte: start, $lte: end };
     }
+    /* =====================================================
+       🔹 EXISTING FILTERS (UNCHANGED)
+    ===================================================== */
+    else {
+      if (filter === "today") {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
 
-    if (filter === "thisMonth") {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1);
-      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        const end = new Date();
+        end.setHours(23, 59, 59, 999);
 
-      matchStage.bookingDateTime = { $gte: start, $lte: end };
+        matchStage.bookingDateTime = { $gte: start, $lte: end };
+      }
+
+      if (filter === "thisMonth") {
+        const start = new Date(now.getFullYear(), now.getMonth(), 1);
+        const end = new Date(
+          now.getFullYear(),
+          now.getMonth() + 1,
+          0,
+          23,
+          59,
+          59,
+          999
+        );
+
+        matchStage.bookingDateTime = { $gte: start, $lte: end };
+      }
+
+      if (filter === "thisYear") {
+        const start = new Date(now.getFullYear(), 0, 1);
+        const end = new Date(
+          now.getFullYear(),
+          11,
+          31,
+          23,
+          59,
+          59,
+          999
+        );
+
+        matchStage.bookingDateTime = { $gte: start, $lte: end };
+      }
+
+      if (filter === "incoming") {
+        matchStage.bookingDateTime = { $gte: now };
+      }
     }
 
-    if (filter === "thisYear") {
-      const start = new Date(now.getFullYear(), 0, 1);
-      const end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
-
-      matchStage.bookingDateTime = { $gte: start, $lte: end };
-    }
-
-    if (filter === "incoming") {
-      matchStage.bookingDateTime = { $gte: now };
-    }
-
-    // 🔹 FETCH FROM DB
+    // 🔹 FETCH
     let bookings = await reservationViewVillage.find(matchStage).lean();
 
     // 🔹 SORT
@@ -1192,8 +1236,10 @@ router.get("/view-village-booking-list", async (req, res) => {
       filter,
       sort: sortParam,
       limit,
+      search,
       currentPage: page,
       totalPages: Math.ceil(totalCount / limit) || 1,
+      selectedDate, // 🔥 PASS TO EJS
       username: req.session.username,
       isAdmin: req.session.isAdmin,
       isLogin: req.session.login
@@ -1348,30 +1394,28 @@ router.get("/view-village-dashboard", async (req, res) => {
 // EXPORT CSV COOLLY CHEF
 // ====================================
 router.get("/view-village-export-csv", async (req, res) => {
-  try {
-    const bookings = await reservationViewVillage.find().sort({ bookingDateTime: 1 });
+  const { date } = req.query;
 
-    let csv = "Name,Phone,Table,Amount,Reservation Date,Note,Status,Created At\n";
-    // name, phone, amount, remark, bookingDateTime, tables
+  const selectedDate =
+    date || new Date().toISOString().slice(0, 10);
 
-    bookings.forEach(b => {
-      const reservationDate = format(new Date(b.bookingDateTime), 
-        "dd MMMM yyyy HH:mm", { locale: th });
+  const start = new Date(`${selectedDate}T00:00:00+07:00`);
+  const end   = new Date(`${selectedDate}T23:59:59+07:00`);
 
-      const createdAt = format(new Date(b.createdAt), 
-        "dd MMMM yyyy HH:mm", { locale: th });
+  const bookings = await reservationViewVillage.find({
+    bookingDateTime: { $gte: start, $lte: end }
+  }).lean();
 
-      csv += `"${b.name}","${b.phone}","${b.tables}","${b.amount}","${reservationDate}","${b.remark || ""}","${b.status}","${createdAt}"\n`;
-    });
+  // CSV header
+  let csv = "Name,Phone,Table,Amount,Reservation Date,Note,Status,Created At\n";
 
-    res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader("Content-Disposition", "attachment; filename=the-view-village-bookings.csv");
-    res.send("\uFEFF" + csv);   // BOM for Excel Thai support
+  bookings.forEach(b => {
+    csv += `"${b.name}","${b.phone}","${b.tables.join(" ")}","${b.amount}","${b.bookingDateTime.toISOString()}","${b.remark || ""}","${b.status}","${b.createBy}"\n`;
+  });
 
-  } catch (err) {
-    console.error("CSV Export Error:", err);
-    res.status(500).send("Error exporting CSV");
-  }
+  res.header("Content-Type", "text/csv");
+  res.attachment(`reservations_${selectedDate}.csv`);
+  res.send(csv);
 });
 
 //EDIT RESERVATION

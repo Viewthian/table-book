@@ -217,6 +217,12 @@ confirmBtn.onclick = async () => {
   }
 
   showSuccessModal();
+
+  // 👇 SCROLL TO TOP
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
 };
 
 
