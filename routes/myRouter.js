@@ -95,87 +95,6 @@ router.get('/', (req, res) => {
 });
 
 
-// Display Reservation Page (show only upcoming reservations)
-// router.get("/booking-list", async (req, res) => {
-//   if (!req.session.login) {
-//     return res.render("login");
-//   }
-
-//   try {
-//     const filter = req.query.filter || "incoming"; // default incoming
-//     const sortParam = req.query.sort || "incoming";
-//     const limit = Number(req.query.limit) || 10;
-//     const page = Number(req.query.page) || 1;
-//     const skip = (page - 1) * limit;
-
-//     // Fresh "now" timestamp (moment in time). Do NOT mutate this object later.
-//     const now = new Date();
-
-//     const query = {};
-
-//     if (filter === "today") {
-//       const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-//       const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-//       query.reservationDateTime = { $gte: start, $lte: end };
-
-//     } else if (filter === "thisMonth") {
-//       const firstDay = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-//       const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-//       query.reservationDateTime = { $gte: firstDay, $lte: lastDay };
-
-//     } else if (filter === "thisYear") {
-//       // ⭐ NEW: Whole year
-//       const yearStart = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
-//       const yearEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
-//       query.reservationDateTime = { $gte: yearStart, $lte: yearEnd };
-
-//     } else if (filter === "incoming") {
-//       // Only future bookings
-//       query.reservationDateTime = { $gte: new Date() };
-
-//     } else {
-//       // Default fallback = incoming
-//       query.reservationDateTime = { $gte: new Date() };
-//     }
-
-
-//     // Sorting logic
-//     let sortQuery = { reservationDateTime: 1 }; // default: soonest first
-//     if (sortParam === "oldest") sortQuery = { reservationDateTime: 1 };
-//     if (sortParam === "newest") sortQuery = { createdAt: -1 };
-//     if (sortParam === "incoming") sortQuery = { reservationDateTime: 1 };
-
-//     // Fetch only future bookings according to the query
-//     const [bookings, totalCount] = await Promise.all([
-//       bookTable.find(query).sort(sortQuery).skip(skip).limit(limit).lean(),
-//       bookTable.countDocuments(query)
-//     ]);
-
-//     // (optional) debug - remove in production
-//     // console.log("Filter query:", query);
-//     // console.log("Now:", new Date());
-
-//     return res.render("booking-list", {
-//       bookings,
-//       filter,
-//       sort: sortParam,
-//       limit,
-//       currentPage: page,
-//       totalPages: Math.ceil(totalCount / limit) || 1,
-//       username: req.session.username,
-//       isAdmin: req.session.isAdmin,
-//       isLogin: req.session.login
-//     });
-
-//   } catch (err) {
-//     console.error("Error in /booking-list:", err);
-//     return res.status(500).send("Error loading booking list");
-//   }
-// });
-
-
-
-
 // Display Overview All Booking Data Over A Year
 router.get("/viewbar-dashboard", async (req, res) => {
   if (!req.session.login) {
@@ -286,20 +205,6 @@ router.get("/viewbar-dashboard", async (req, res) => {
   }
 });
 
-// router.get("/book", (req, res) => {
-//   res.render("book", {
-//     messages: {
-//       error: req.flash("error"),
-//       success: req.flash("success")
-//     },
-//     username: req.session.username || "",
-//     isAdmin: req.session.isAdmin || false,
-//     isLogin: req.session.login || false
-//   });
-// });
-
-
-
 // Only Admin can see 'Add-Member' button on the dashboard page
 router.get("/add-member", async (req, res) => {
   if (req.session.login) {
@@ -364,16 +269,6 @@ router.post("/add-member", async (req, res) => {
 });
 
 
-// router.get("/delete-booking/:id", async (req, res) => {
-//     try {
-//         await bookTable.findByIdAndDelete(req.params.id);
-//         res.redirect('/booking-list');
-//     } catch (err) {
-//         console.error("Error deleting booking:", err);
-//         res.status(500).send("Something went wrong");
-//     }
-// });
-
 router.post("/create-admin", async (req, res) => {
   // Check for Authorization header
   const authHeader = req.headers.authorization;
@@ -428,23 +323,10 @@ router.post("/create-admin", async (req, res) => {
   }
 });
 
-
-// router.get("/pm-admin", (req,res)=>{
-//     if(req.session.login){
-//         res.render('form')
-//     }else{
-//         res.render('admin')
-//     }
-    
-// })
-
-
-
 router.get('/logout',(req,res)=>{
     req.session.destroy((err)=>{
         res.redirect('/login')
     })
-    
 })
 
 // ======== Manage Members ============
@@ -539,8 +421,8 @@ router.get("/viewbar-booking-list", async (req, res) => {
   }
 
   try {
-    const filter = req.query.filter || "incoming";
-    const sortParam = req.query.sort || "incoming";
+    const filter = req.query.filter || "oldest";
+    const sortParam = req.query.sort || "oldest";
     const limit = Number(req.query.limit) || 10;
     const page = Number(req.query.page) || 1;
     const skip = (page - 1) * limit;
@@ -572,10 +454,6 @@ router.get("/viewbar-booking-list", async (req, res) => {
       const end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
 
       matchStage.bookingDateTime = { $gte: start, $lte: end };
-    }
-
-    if (filter === "incoming") {
-      matchStage.bookingDateTime = { $gte: now };
     }
 
     // 🔹 FETCH FROM DB
@@ -662,7 +540,8 @@ router.get("/availability", async (req, res) => {
       reservedMap[tableId] = {
         name: r.name,
         phone: r.phone,
-        bookingTime: r.bookingDateTime.toTimeString().slice(0,5)
+        bookingTime: r.bookingDateTime.toTimeString().slice(0,5),
+        remark: r.remark || "-"
       };
     });
   });
@@ -754,7 +633,8 @@ router.get("/coolly-availability", async (req, res) => {
       reservedMap[tableId] = {
         name: r.name,
         phone: r.phone,
-        bookingTime: r.bookingDateTime.toTimeString().slice(0,5)
+        bookingTime: r.bookingDateTime.toTimeString().slice(0,5),
+        remark: r.remark || "-"
       };
     });
   });
@@ -1077,7 +957,8 @@ router.get("/view-village-availability", async (req, res) => {
       reservedMap[tableId] = {
         name: r.name,
         phone: r.phone,
-        bookingTime: r.bookingDateTime.toTimeString().slice(0,5)
+        bookingTime: r.bookingDateTime.toTimeString().slice(0,5),
+        remark: r.remark || "-"
       };
     });
   });
@@ -1549,7 +1430,8 @@ router.get("/stereo-availability", async (req, res) => {
       reservedMap[tableId] = {
         name: r.name,
         phone: r.phone,
-        bookingTime: r.bookingDateTime.toTimeString().slice(0,5)
+        bookingTime: r.bookingDateTime.toTimeString().slice(0,5),
+        remark: r.remark || "-"
       };
     });
   });

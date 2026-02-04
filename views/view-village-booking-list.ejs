@@ -352,19 +352,17 @@
         <div class="filter-item">
           <label>Filter</label>
           <select name="filter" onchange="this.form.submit()">
-            <option value="all" <%= filter==="all"?"selected":"" %>>All</option>
-            <option value="today" <%= filter==="today"?"selected":"" %>>Today</option>
-            <option value="thisMonth" <%= filter==="thisMonth"?"selected":"" %>>This Month</option>
-            <option value="thisYear" <%= filter==="thisYear"?"selected":"" %>>This Year</option>
+            <option value="all" <%= filter==="all"?"selected":"" %>>ทั้งหมด</option>
+            <option value="thisMonth" <%= filter==="thisMonth"?"selected":"" %>>จองเดือนนี้</option>
+            <option value="thisYear" <%= filter==="thisYear"?"selected":"" %>>จองปีนี้</option>
           </select>
         </div>
 
         <div class="filter-item">
           <label>Sort</label>
           <select name="sort" onchange="this.form.submit()">
-            <option value="incoming" <%= sort==="incoming"?"selected":"" %>>Incoming</option>
-            <option value="newest" <%= sort==="newest"?"selected":"" %>>Newest</option>
-            <option value="oldest" <%= sort==="oldest"?"selected":"" %>>Oldest</option>
+            <option value="oldest" <%= sort==="oldest"?"selected":"" %>>เรียงวันที่น้อยไปมาก</option>
+            <option value="newest" <%= sort==="newest"?"selected":"" %>>เรียงวันที่มากไปน้อย</option>
           </select>
         </div>
 

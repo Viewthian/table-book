@@ -77,7 +77,8 @@ function renderTables(reservedMap = {}) {
           <strong>Table:</strong> ${t.id}<br>
           <strong>Name:</strong> ${reservedMap[t.id].name}<br>
           <strong>Phone:</strong> ${reservedMap[t.id].phone}<br>
-          <strong>Time:</strong> ${reservedMap[t.id].bookingTime}
+          <strong>Time:</strong> ${reservedMap[t.id].bookingTime}<br>
+          <strong>Note:</strong> ${reservedMap[t.id].remark || "-"}
         `;
         tooltip.style.display = "block";
       });
