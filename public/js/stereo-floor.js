@@ -3,16 +3,18 @@ const datePicker = document.getElementById("datePicker");
 const confirmBtn = document.getElementById("confirm");
 const tooltip = document.getElementById("tooltip");
 const timePicker = document.getElementById("timePicker");
+const slipInput = document.getElementById("slip");
+const preview = document.getElementById("preview");
+
+const previewImg = document.getElementById("preview");
+const imageModal = document.getElementById("imageModal");
+const modalImg = document.getElementById("modalImage");
+const closeModal = document.querySelector(".close-modal");
 
 
 const selectedTables = new Set();
 let reservedInfo = {};
-// let staticElements = [];
 
-
-console.log("stereo floor:", floor);
-console.log("staticElements:", staticElements);
-console.log("tables:", tables);
 
 /* -------------------- LOAD AVAILABILITY (DATE ONLY) -------------------- */
 
@@ -31,7 +33,6 @@ async function loadAvailability(date) {
 function renderStaticElements(elements) {
   console.log("Rendering static elements:", elements);
 
-
   elements.forEach(el => {
     const div = document.createElement("div");
     div.className = el.className;
@@ -42,47 +43,50 @@ function renderStaticElements(elements) {
     div.style.height = el.height;
 
     floor.appendChild(div);
-    // div.style.outline = "3px solid red";
   });
 }
 
 function renderTables(reservedMap = {}) {
-  console.log("reservedMap keys:", Object.keys(reservedMap));
+
   selectedTables.clear();
 
   tables.forEach(t => {
     const div = document.createElement("div");
     div.className = `table ${t.type}`;
 
-    div.style.left = t.x + "%";
-    div.style.top = t.y + "%";
+    div.style.left = `${t.x}%`;
+    div.style.top  = `${t.y}%`;
 
-    // ✅ dynamic rotation
+    const label = document.createElement("span");
+    label.innerHTML = t.id.replace("|", "<br>");   //No this line, table data is gone
+    div.appendChild(label);
+
     if (t.rotate) {
       div.style.transform = `rotate(${t.rotate}deg)`;
-      div.innerHTML = `<span>${t.id}</span>`;
-    } else {
-      div.innerText = t.id;
     }
 
     // RESERVED TABLE
     if (reservedMap[t.id]) {
+      console.log("Reserved:", t.id);
       div.classList.add("reserved");
 
       div.addEventListener("mouseenter", e => {
+        console.log("ENTER", t.id);
         tooltip.innerHTML = `
           <strong>Table:</strong> ${t.id}<br>
           <strong>Name:</strong> ${reservedMap[t.id].name}<br>
           <strong>Phone:</strong> ${reservedMap[t.id].phone}<br>
-          <strong>Time:</strong> ${reservedMap[t.id].bookingTime}
+          <strong>Time:</strong> ${reservedMap[t.id].bookingTime}<br>
+          <strong>Note:</strong> ${reservedMap[t.id].remark}
         `;
         tooltip.style.display = "block";
       });
 
       div.addEventListener("mousemove", e => {
         const rect = floor.getBoundingClientRect();
+
         tooltip.style.left = (e.clientX - rect.left + 10) + "px";
-        tooltip.style.top  = (e.clientY - rect.top  + 10) + "px";
+        tooltip.style.top  = (e.clientY - rect.top  + 10) + "px"; 
       });
 
       div.addEventListener("mouseleave", () => {
@@ -145,78 +149,81 @@ function generateTimeSlots() {
 // generate once on page load
 generateTimeSlots();
 
+slipInput.addEventListener("change", () => {
+  const file = slipInput.files[0];
+  if (!file) return;
+
+  if (!["image/jpeg", "image/png"].includes(file.type)) {
+    alert("Only JPG or PNG allowed");
+    slipInput.value = "";
+    preview.style.display = "none";
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    preview.src = e.target.result;
+    preview.style.display = "block";
+  };
+  reader.readAsDataURL(file);
+});
+
 
 /* -------------------- CONFIRM BOOKING -------------------- */
 
 confirmBtn.onclick = async () => {
-  try {
-    const name = document.getElementById("name").value.trim();
-    const bookingTime = document.getElementById("timePicker").value;
-    const amount = Number(document.getElementById("amount").value);
-    const remark = document.getElementById("remark").value;
-    const date = datePicker.value;
-    const phoneInput = document.getElementById("phone");
-    const phone = phoneInput.value.trim();
+  const name = document.getElementById("name").value.trim();
+  const phone = document.getElementById("phone").value.trim();
+  const bookingTime = document.getElementById("timePicker").value;
+  const amount = document.getElementById("amount").value;
+  const transfer = document.getElementById("transfer").value;
+  const remark = document.getElementById("remark").value;
+  const date = datePicker.value;
 
-    const phoneRegex = /^(0\d{9}|\+66\d{9})$/;
-
-    if (!name || !phone || !bookingTime || !amount || selectedTables.size === 0) {
-      showErrorModal("กรุณากรอกข้อมูลให้ครบถ้วน");
-      return;
-    }
-
-    if (!phoneRegex.test(phone)) {
-      showErrorModal("กรุณากรอกเบอร์โทรถูกต้อง ตัวอย่างเบอร์โทร: 0812345678");
-      phoneInput.focus();
-      return;
-    }
-
-    // ✅ combine date + time → ISO datetime
-    const bookingDateTime = new Date(`${date}T${bookingTime}:00`);
-
-    if (isNaN(bookingDateTime.getTime())) {
-      showErrorModal("วันที่และเวลาไม่ถูกต้อง");
-      return;
-    }
-
-    // 🔒 disable button while submitting
-    confirmBtn.disabled = true;
-    confirmBtn.innerText = "Saving...";
-
-    const res = await fetch("/reserve-stereo", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        phone,
-        bookingDateTime,
-        amount,
-        remark,
-        tables: [...selectedTables]
-      })
-    });
-
-    let data = {};
-    try {
-      data = await res.json();   // prevent crash if backend fails
-    } catch (e) {}
-
-    if (!res.ok) {
-      showErrorModal(data.error || "การจองผิดผลาด กรุณาลองใหม่อีกครั้ง");
-      confirmBtn.disabled = false;
-      confirmBtn.innerText = "Confirm";
-      return;
-    }
-
-    // ✅ success
-    showSuccessModal(); // inside this you can auto-reload after 2s
-
-  } catch (err) {
-    console.error(err);
-    showErrorModal("Network error. กรุณาลองใหม่อีกครั้ง");
-    confirmBtn.disabled = false;
-    confirmBtn.innerText = "Confirm";
+  if (!name || !phone || !bookingTime || !amount || transfer === "" || selectedTables.size === 0) {
+    showErrorModal("Please fill all required fields");
+    return;
   }
+
+  const bookingDateTime = new Date(`${date}T${bookingTime}:00`);
+  if (isNaN(bookingDateTime.getTime())) {
+    showErrorModal("Invalid date/time");
+    return;
+  }
+
+  // ✅ FormData for image upload
+  const formData = new FormData();
+  formData.append("name", name);
+  formData.append("phone", phone);
+  formData.append("bookingDateTime", bookingDateTime.toISOString());
+  formData.append("amount", amount);
+  formData.append("transfer", transfer);
+  formData.append("remark", remark);
+  formData.append("tables", JSON.stringify([...selectedTables]));
+
+  if (slipInput.files[0]) {
+    formData.append("image", slipInput.files[0]);
+  }
+
+  const res = await fetch("/reserve-stereo", {
+    method: "POST",
+    body: formData
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    showErrorModal(data.error || "Reservation failed");
+    return;
+  }
+
+  showSuccessModal();
+
+  // 👇 SCROLL TO TOP
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
 };
 
 
@@ -235,6 +242,27 @@ function showSuccessModal() {
     window.location.reload();
   }, 1000);
 }
+
+if (previewImg) {
+  previewImg.addEventListener("click", () => {
+    modalImg.src = previewImg.src;
+    imageModal.style.display = "flex";
+    document.body.style.overflow = "hidden"; // lock scroll
+  });
+}
+
+closeModal.addEventListener("click", () => {
+  imageModal.style.display = "none";
+  document.body.style.overflow = "";
+});
+
+// Close when clicking outside image
+imageModal.addEventListener("click", e => {
+  if (e.target === imageModal) {
+    imageModal.style.display = "none";
+    document.body.style.overflow = "";
+  }
+});
 
 
 

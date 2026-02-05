@@ -1,4 +1,4 @@
-const floor = document.getElementById("edit-view-village-floor");
+const floor = document.getElementById("edit-stereobar-floor");
 const datePicker = document.getElementById("datePicker");
 const confirmBtn = document.getElementById("confirm");
 const tooltip = document.getElementById("tooltip");
@@ -18,7 +18,7 @@ let reservedInfo = {};
 /* -------------------- LOAD AVAILABILITY (DATE ONLY) -------------------- */
 
 async function loadAvailability(date) {
-  const res = await fetch(`/view-village-availability?date=${date}`);
+  const res = await fetch(`/stereo-availability?date=${date}`);
   const data = await res.json();
 
   reservedInfo = data.reservedMap || {};
@@ -192,7 +192,7 @@ confirmBtn.onclick = async () => {
 
   if (image) formData.append("image", image);
 
-  const res = await fetch(`/update-view-village/${id}`, {
+  const res = await fetch(`/update-stereobar/${id}`, {
     method: "POST",
     body: formData
   });

@@ -37,14 +37,12 @@ function renderStaticElements(elements) {
     const div = document.createElement("div");
     div.className = el.className;
     div.innerText = el.label;
-
     div.style.left = el.left;
     div.style.top = el.top;
     div.style.width = el.width;
     div.style.height = el.height;
 
     floor.appendChild(div);
-    // div.style.outline = "3px solid red";
   });
 }
 

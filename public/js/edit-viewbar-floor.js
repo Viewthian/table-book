@@ -174,8 +174,8 @@ confirmBtn.onclick = async () => {
   const remark = document.getElementById("remark").value;
   const image = document.getElementById("slip").files[0];
 
-  if (!name || !phone || !date || !time || !amount) {
-    showErrorModal("Please fill all required fields");
+  if (!name || !phone || !date || !time || !amount || selectedTables.size === 0) {
+    showErrorModal("กรุณากรอกข้อมูลให้ครบถ้วน");
     return;
   }
 

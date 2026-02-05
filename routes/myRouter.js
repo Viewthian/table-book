@@ -1586,86 +1586,140 @@ router.get("/stereo-availability", async (req, res) => {
 });
 
 //Reseve stereo
-router.post("/reserve-stereo", async (req, res) => {
-  const { name, phone, amount, remark, bookingDateTime, tables } = req.body;
+router.post(
+  "/reserve-stereo",
+  (req, res, next) => {
+    req.uploadFolder = "stereobar";
+    next();
+  },
+  upload.single("image"),
+  async (req, res) => {
+    try {
+      // 🔐 Make sure user is logged in
+      if (!req.session || !req.session.username) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
 
-  if (!name || !phone || !amount || !bookingDateTime || !tables?.length) {
-    return res.status(400).json({ error: "Missing required fields" });
+      const {
+        name,
+        phone,
+        bookingDateTime,
+        amount,
+        transfer,
+        remark,
+        tables
+      } = req.body;
+
+      const booking = new reservationStereo({
+        name,
+        phone,
+        bookingDateTime: new Date(bookingDateTime),
+        amount,
+        transfer,
+        remark,
+        createBy: req.session.username, // ✅ FROM SESSION
+        tables: JSON.parse(tables),
+        image: req.file ? `/uploads/stereobar/${req.file.filename}` : null
+      });
+
+      await booking.save();
+
+      res.json({ success: true });
+
+    } catch (err) {
+      console.error(err);
+      res.status(400).json({ error: err.message });
+    }
   }
-
-  // 🔒 prevent double booking (date + time + table)
-  const conflict = await reservationStereo.findOne({
-    bookingDateTime,
-    tables: { $in: tables }
-  });
-
-  if (conflict) {
-    return res.status(409).json({
-      error: "Some tables already reserved for this time"
-    });
-  }
-
-  await reservationStereo.create({
-    name,
-    phone,
-    amount,
-    remark,
-    bookingDateTime: new Date(bookingDateTime),
-    tables,
-    bookingId: "BK" + Date.now()
-  });
-
-  console.log(req.body);
-
-  res.json({ success: true });
-});
+);
 
 
 router.get("/stereo-booking-list", async (req, res) => {
   if (!req.session.login) {
     return res.render("login");
   }
+
   try {
-    const filter = req.query.filter || "incoming";
-    const sortParam = req.query.sort || "incoming";
+    const filter = req.query.filter || "today";
+    const sortParam = req.query.sort || "oldest";
     const limit = Number(req.query.limit) || 10;
     const page = Number(req.query.page) || 1;
     const skip = (page - 1) * limit;
 
     const now = new Date();
 
+    const search = req.query.search || "";
+
+    // 🔹 NEW: selected date (default = today)
+    const selectedDate =
+      req.query.date || new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
     let matchStage = {};
 
-    // 🔹 DATE FILTERS (using bookingDateTime)
-    if (filter === "today") {
-      const start = new Date();
-      start.setHours(0, 0, 0, 0);
+    if (search) {
+      matchStage.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { phone: { $regex: search, $options: "i" } }
+      ];
+    }
 
-      const end = new Date();
-      end.setHours(23, 59, 59, 999);
+
+    /* =====================================================
+       🔥 DATE PICKER OVERRIDES FILTER
+    ===================================================== */
+    if (req.query.date) {
+      const start = new Date(`${selectedDate}T00:00:00`);
+      const end   = new Date(`${selectedDate}T23:59:59.999`);
 
       matchStage.bookingDateTime = { $gte: start, $lte: end };
     }
+    /* =====================================================
+       🔹 EXISTING FILTERS (UNCHANGED)
+    ===================================================== */
+    else {
+      if (filter === "today") {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
 
-    if (filter === "thisMonth") {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1);
-      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        const end = new Date();
+        end.setHours(23, 59, 59, 999);
 
-      matchStage.bookingDateTime = { $gte: start, $lte: end };
+        matchStage.bookingDateTime = { $gte: start, $lte: end };
+      }
+
+      if (filter === "thisMonth") {
+        const start = new Date(now.getFullYear(), now.getMonth(), 1);
+        const end = new Date(
+          now.getFullYear(),
+          now.getMonth() + 1,
+          0,
+          23,
+          59,
+          59,
+          999
+        );
+
+        matchStage.bookingDateTime = { $gte: start, $lte: end };
+      }
+
+      if (filter === "thisYear") {
+        const start = new Date(now.getFullYear(), 0, 1);
+        const end = new Date(
+          now.getFullYear(),
+          11,
+          31,
+          23,
+          59,
+          59,
+          999
+        );
+
+        matchStage.bookingDateTime = { $gte: start, $lte: end };
+      }
+
     }
 
-    if (filter === "thisYear") {
-      const start = new Date(now.getFullYear(), 0, 1);
-      const end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
-
-      matchStage.bookingDateTime = { $gte: start, $lte: end };
-    }
-
-    if (filter === "incoming") {
-      matchStage.bookingDateTime = { $gte: now };
-    }
-
-    // 🔹 FETCH FROM DB
+    // 🔹 FETCH
     let bookings = await reservationStereo.find(matchStage).lean();
 
     // 🔹 SORT
@@ -1683,8 +1737,10 @@ router.get("/stereo-booking-list", async (req, res) => {
       filter,
       sort: sortParam,
       limit,
+      search,
       currentPage: page,
       totalPages: Math.ceil(totalCount / limit) || 1,
+      selectedDate, // 🔥 PASS TO EJS
       username: req.session.username,
       isAdmin: req.session.isAdmin,
       isLogin: req.session.login
@@ -1863,6 +1919,103 @@ router.get("/stereo-export-csv", async (req, res) => {
     res.status(500).send("Error exporting CSV");
   }
 });
+
+//EDIT RESERVATION
+router.get("/edit-booking-stereobar/:id", async (req, res) => {
+  try {
+    if (!req.session || !req.session.username) {
+      return res.status(401).render("login");
+    }
+
+    const booking = await reservationStereo.findById(req.params.id).lean();
+
+    if (!booking) {
+      return res.status(404).send("Booking not found");
+    }
+
+    res.render("edit-booking-stereobar", {
+      booking,
+      tables: tables,
+      staticElements: staticElements,
+      existingTables: Array.isArray(booking.tables)
+        ? booking.tables
+        : [],
+      image: req.file ? `/uploads/stereobar/${req.file.filename}` : null,
+      username: req.session.username,
+      isAdmin: req.session.isAdmin,
+      isLogin: req.session.login
+    });
+
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error loading booking");
+  }
+});
+
+router.post(
+  "/update-stereobar/:id",
+  (req, res, next) => {
+    req.uploadFolder = "stereobar";
+    next();
+  },
+  upload.single("image"),
+  async (req, res) => {
+    try {
+      // 🔐 Auth check
+      if (!req.session || !req.session.username) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const update_id = req.params.id; // ✅ USE PARAM, NOT BODY
+      if (!update_id) {
+        return res.status(400).json({ error: "Missing booking ID" });
+      }
+
+      // ✅ Parse tables safely
+      let tables = [];
+      if (req.body.tables) {
+        try {
+          tables = JSON.parse(req.body.tables);
+        } catch (e) {
+          return res.status(400).json({ error: "Invalid tables data" });
+        }
+      }
+
+      const updatedData = {
+        name: req.body.name,
+        phone: req.body.phone,
+        bookingDateTime: new Date(req.body.bookingDateTime),
+        amount: Number(req.body.amount),
+        transfer: Number(req.body.transfer),
+        remark: req.body.remark,
+        createBy: req.session.username,
+        tables
+      };
+
+      // ✅ Only overwrite image if new one uploaded
+      if (req.file) {
+        updatedData.image = `/uploads/stereobar/${req.file.filename}`;
+      }
+
+      const updated = await reservationStereo.findByIdAndUpdate(
+        update_id,
+        updatedData,
+        { new: true }
+      );
+
+      if (!updated) {
+        return res.status(404).json({ error: "Reservation not found" });
+      }
+
+      res.json({ success: true, data: updated });
+
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
 
 module.exports = router     //export module router ไปให้ index ใช้
 

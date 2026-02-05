@@ -33,6 +33,18 @@ const ReservationSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  transfer: {
+    type: Number,
+    required: true
+  },
+
+  // ✅ image path or URL
+  image: {
+    type: String, // e.g. "/uploads/slip_123.jpg"
+  },
+  createBy: {
+    type: String
+  },
   remark: String,
 
   status: { type: String, enum: ['booked', 'checkin', 'cancelled'], default: 'booked' },

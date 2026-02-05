@@ -4,6 +4,7 @@
   <!-- <meta name="viewport" content="width=device-width, initial-scale=1.0"> -->
   <!-- <title>Select Table</title> -->
   <link rel="stylesheet" href="/css/floor.css">
+  
 
   <!-- Basic -->
   <meta charset="utf-8" />
@@ -16,28 +17,28 @@
   <meta name="author" content="" />
   <link rel="shortcut icon" href="images/favicon.png" type="">
 
-  <title> The Stereo Bar </title>
+  <title>The Stereo Bar </title>
 
   <!-- bootstrap core css -->
-  <link rel="stylesheet" type="text/css" href="css/bootstrap.css" />
+  <link rel="stylesheet" type="text/css" href="/css/bootstrap.css" />
 
   <!--owl slider stylesheet -->
   <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css" />
   <!-- nice select  -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-nice-select/1.1.0/css/nice-select.min.css" integrity="sha512-CruCP+TD3yXzlvvijET8wV5WxxEh5H8P4cmz0RFbKK6FlZ2sYl3AEsKlLPHbniXKSrDdFewhbmBK5skbdsASbQ==" crossorigin="anonymous" />
   <!-- font awesome style -->
-  <link href="css/font-awesome.min.css" rel="stylesheet" />
+  <link href="/css/font-awesome.min.css" rel="stylesheet" />
 
   <!-- Custom styles for this template -->
-  <link href="css/style.css" rel="stylesheet" />
+  <link href="/css/style.css" rel="stylesheet" />
   <!-- responsive style -->
-  <link href="css/responsive.css" rel="stylesheet" />
+  <link href="/css/responsive.css" rel="stylesheet" />
   
 </head>
 <body>
   <div class="hero_area">
     <div class="bg-box">
-      <img src="images/hero-bg.jpg" alt="">
+      <img src="/images/hero-bg.jpg" alt="">
     </div>
 
     <!-- header section strats -->
@@ -84,82 +85,105 @@
     </header>
     <!-- end header section -->
 
-    <!-- 🔥 FLOORPLAN OVERLAY -->
-    <div class="floorplan-overlay"> 
-
-      <div class="date-card">
-        <label for="datePicker">Select Date</label>
-        <input
-          type="date"
-          id="datePicker"
-          value="<%= today %>"
-          min="<%= today %>"
-        >
-      </div>
-
-      <div id="stereo-floor" class="floor-container"></div>
-      <div id="tooltip" class="tooltip"></div>
-
+    <div style="align-content: center; font-size: large; color: azure;">
+      <h2>
+        แก้ไขข้อมูลการจอง
+      </h2>
     </div>
+
+  <div class="floorplan-overlay">
+    <div class="date-card">
+      <label>Select Date</label>
+      <input
+        type="date"
+        id="datePicker"
+        value="<%= booking.bookingDateTime.toISOString().slice(0,10) %>"
+      >
+    </div>
+
+    <div id="edit-stereobar-floor" class="floor-container"></div>
+    <div id="tooltip" class="tooltip"></div>
   </div>
 
-  <!-- 🔽 CUSTOMER INFO SECTION -->
-  <section class="booking-section">
-
-  <h3 style="color: azure;">Customer Information</h3>
+<section class="booking-section">
+  <h3 style="color: azure;">โปรดระบุข้อมูลลูกค้า</h3>
 
   <div class="form">
-    <input type="text" id="name" placeholder="ชื่อ" required>
+    <input type="hidden" id="update_id" value="<%= booking._id %>">
+
+    <input type="text" id="name" value="<%= booking.name %>" required>
 
     <input
       type="tel"
       id="phone"
-      inputmode="numeric"
-      pattern="^(0[0-9]{9})$"
-      placeholder="Ex: 0812345678"
+      value="<%= booking.phone %>"
+      pattern="^(0[0-9]{9})"
       required
     >
 
-    <select id="timePicker" required>
-      <option value="">ระบุเวลา</option>
-    </select>
+    <select id="timePicker" required></select>
 
-    <input type="number" id="amount" placeholder="จำนวนแขก" required>
+    <input type="number" id="amount" value="<%= booking.amount %>" required>
 
-    <!-- ✅ Transfer dropdown -->
+    <!-- Transfer -->
     <select id="transfer" required>
-      <option value="">ระบุการโอนเงิน</option>
-      <option value="0">ยังไม่ได้โอน</option>
-      <option value="1000">1,000</option>
-      <option value="1500">1,500</option>
-      <option value="2000">2,000</option>
+      <option value="0" <%= booking.transfer === 0 ? "selected" : "" %>>Not Transfer</option>
+      <option value="1000" <%= booking.transfer === 1000 ? "selected" : "" %>>1,000</option>
+      <option value="1500" <%= booking.transfer === 1500 ? "selected" : "" %>>1,500</option>
+      <option value="2000" <%= booking.transfer === 2000 ? "selected" : "" %>>2,000</option>
     </select>
 
-    <!-- ✅ Image upload -->
-    <input
-      type="file"
-      id="slip"
-      accept="image/png, image/jpeg"
-    >
+    <!-- Image -->
+    <input type="file" id="slip" accept="image/png, image/jpeg">
+    <% if (booking.image) { %>
+      <img
+        id="preview"
+        src="<%= booking.image %>"
+        style="max-width:200px; margin-top:10px; border-radius:8px;"
+        class="clickable-image"
+        alt="Slip Image"
+      >
+    <% } else { %>
+      <!-- <img id="preview" style="display:none; max-width:200px;"> -->
+       <img id="preview" style="display:none;">
+    <% } %>
 
-    <!-- ✅ Preview -->
-    <img
-      id="preview"
-      style="display:none; max-width:200px; margin-top:10px; border-radius:8px;"
-    >
+    <div id="imageModal" class="image-modal">
+      <span class="close-modal">&times;</span>
+      <img class="modal-content" id="modalImage">
+    </div>
 
-    <textarea id="remark" placeholder="Remark (optional)"></textarea>
+    <textarea id="remark" placeholder="รายละเอียดเพิ่มเติม"><%= booking.remark || "" %></textarea>
   </div>
 
-  <button id="confirm">Confirm</button>
-  
+  <button id="confirm">Update Reservation</button>
 </section>
+
+<script>
+  const tables = JSON.parse('<%- JSON.stringify(tables) %>');
+  const staticElements = JSON.parse('<%- JSON.stringify(staticElements) %>');
+  
+</script>
+
+<script>
+  window.currentBookingId = "<%= booking._id %>";
+  window.existingTables = JSON.parse('<%- JSON.stringify(existingTables || []) %>');
+</script>
+
+
+
+<script>
+  window.existingTime = "<%= booking.bookingDateTime.toTimeString().slice(0,5) %>";
+  // window.existingTables = JSON.parse('<%- JSON.stringify(booking.tables) %>');
+</script>
+
+
 
 <div id="successModal" class="success-modal">
   <div class="success-box">
     <div class="success-icon">✓</div>
     <h2>Reservation Confirmed</h2>
-    <p>จองโต๊ะสำเร็จ</p>
+    <p>แก้ไขการจองสำเร็จ</p>
   </div>
 </div>
 
@@ -173,15 +197,8 @@
 </div>
 
 
+<script src="/js/edit-stereobar-floor.js"></script>
 
-
-
-<script>
-  const tables = JSON.parse('<%- JSON.stringify(tables) %>');
-  const staticElements = JSON.parse('<%- JSON.stringify(staticElements) %>');
-</script>
-
-<script src="/js/stereo-floor.js"></script>
 
 </body>
 </html>
