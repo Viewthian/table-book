@@ -60,7 +60,7 @@ function renderTables(reservedMap = {}) {
     div.style.top  = `${t.y}%`;
 
     const label = document.createElement("span");
-    
+    label.innerHTML = t.id.replace("|", "<br>");   //No this line, table data is gone
     div.appendChild(label);
 
     if (t.rotate) {
