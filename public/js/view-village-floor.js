@@ -13,7 +13,7 @@ const closeModal = document.querySelector(".close-modal");
 
 
 const selectedTables = new Set();
-let reservedInfo = {};confirmBtn
+let reservedInfo = {};
 // let staticElements = [];
 
 /* -------------------- LOAD AVAILABILITY (DATE ONLY) -------------------- */

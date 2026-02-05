@@ -87,23 +87,23 @@
 
     <div style="align-content: center; font-size: large; color: azure;">
       <h2>
-        แก้ไขการจอง
+        แก้ไขข้อมูลการจอง
       </h2>
     </div>
 
-<div class="floorplan-overlay">
-  <div class="date-card">
-    <label>Select Date</label>
-    <input
-      type="date"
-      id="datePicker"
-      value="<%= booking.bookingDateTime.toISOString().slice(0,10) %>"
-    >
-  </div>
+  <div class="floorplan-overlay">
+    <div class="date-card">
+      <label>Select Date</label>
+      <input
+        type="date"
+        id="datePicker"
+        value="<%= booking.bookingDateTime.toISOString().slice(0,10) %>"
+      >
+    </div>
 
-  <div id="edit-view-village-floor" class="floor-container"></div>
-  <div id="tooltip" class="tooltip"></div>
-</div>
+    <div id="edit-view-village-floor" class="floor-container"></div>
+    <div id="tooltip" class="tooltip"></div>
+  </div>
 
 <section class="booking-section">
   <h3 style="color: azure;">โปรดระบุข้อมูลลูกค้า</h3>

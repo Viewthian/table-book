@@ -109,14 +109,45 @@
   <h3 style="color: azure;">Customer Information</h3>
 
   <div class="form">
-    <input type="text" id="name" placeholder="Name" required>
-    <input type="tel" id="phone" inputmode="numeric" pattern="^(0[0-9]{9}|\+66[0-9]{9})$"  value="" placeholder="Ex: 0812345678" required>
+    <input type="text" id="name" placeholder="ชื่อ" required>
+
+    <input
+      type="tel"
+      id="phone"
+      inputmode="numeric"
+      pattern="^(0[0-9]{9}|\+66[0-9]{9})$"
+      placeholder="Ex: 0812345678"
+      required
+    >
 
     <select id="timePicker" required>
-      <option value="">Select Time</option>
+      <option value="">ระบุเวลา</option>
     </select>
 
-    <input type="number" id="amount" placeholder="Amount" required>
+    <input type="number" id="amount" placeholder="จำนวนแขก" required>
+
+    <!-- ✅ Transfer dropdown -->
+    <select id="transfer" required>
+      <option value="">ระบุการโอนเงิน</option>
+      <option value="0">ยังไม่ได้โอน</option>
+      <option value="1000">1,000</option>
+      <option value="1500">1,500</option>
+      <option value="2000">2,000</option>
+    </select>
+
+    <!-- ✅ Image upload -->
+    <input
+      type="file"
+      id="slip"
+      accept="image/png, image/jpeg"
+    >
+
+    <!-- ✅ Preview -->
+    <img
+      id="preview"
+      style="display:none; max-width:200px; margin-top:10px; border-radius:8px;"
+    >
+
     <textarea id="remark" placeholder="Remark (optional)"></textarea>
   </div>
 

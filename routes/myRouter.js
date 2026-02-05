@@ -387,41 +387,38 @@ router.post("/edit-member/:id", async (req, res) => {
 // EXPORT CSV VIEW BAR
 // ====================================
 router.get("/viewbar-export-csv", async (req, res) => {
-  try {
-    const bookings = await Reservation.find().sort({ bookingDateTime: 1 });
+  const { date } = req.query;
 
-    let csv = "Name,Phone,Table,Amount,Reservation Date,Note,Status,Created At\n";
-    // name, phone, amount, remark, bookingDateTime, tables
+  const selectedDate =
+    date || new Date().toISOString().slice(0, 10);
 
-    bookings.forEach(b => {
-      const reservationDate = format(new Date(b.bookingDateTime), 
-        "dd MMMM yyyy HH:mm", { locale: th });
+  const start = new Date(`${selectedDate}T00:00:00+07:00`);
+  const end   = new Date(`${selectedDate}T23:59:59+07:00`);
 
-      const createdAt = format(new Date(b.createdAt), 
-        "dd MMMM yyyy HH:mm", { locale: th });
+  const bookings = await Reservation.find({
+    bookingDateTime: { $gte: start, $lte: end }
+  }).lean();
 
-      csv += `"${b.name}","${b.phone}","${b.tables}","${b.amount}","${reservationDate}","${b.remark || ""}","${b.status}","${createdAt}"\n`;
-    });
+  // CSV header
+  let csv = "Name,Phone,Table,Amount,Reservation Date,Note,Status,Create By,Created At\n";
 
-    res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader("Content-Disposition", "attachment; filename=the-view-bar-bookings.csv");
-    res.send("\uFEFF" + csv);   // BOM for Excel Thai support
+  bookings.forEach(b => {
+    csv += `"${b.name}","${b.phone}","${b.tables.join(" ")}","${b.amount}","${b.bookingDateTime.toISOString()}","${b.remark || ""}","${b.status}","${b.createBy}","${b.createAt}"\n`;
+  });
 
-  } catch (err) {
-    console.error("CSV Export Error:", err);
-    res.status(500).send("Error exporting CSV");
-  }
+  res.header("Content-Type", "text/csv");
+  res.attachment(`reservations_${selectedDate}.csv`);
+  res.send(csv);
 });
 
 
 router.get("/viewbar-booking-list", async (req, res) => {
-
   if (!req.session.login) {
     return res.render("login");
   }
 
   try {
-    const filter = req.query.filter || "oldest";
+    const filter = req.query.filter || "today";
     const sortParam = req.query.sort || "oldest";
     const limit = Number(req.query.limit) || 10;
     const page = Number(req.query.page) || 1;
@@ -429,34 +426,78 @@ router.get("/viewbar-booking-list", async (req, res) => {
 
     const now = new Date();
 
+    const search = req.query.search || "";
+
+    // 🔹 NEW: selected date (default = today)
+    const selectedDate =
+      req.query.date || new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
     let matchStage = {};
 
-    // 🔹 DATE FILTERS (using bookingDateTime)
-    if (filter === "today") {
-      const start = new Date();
-      start.setHours(0, 0, 0, 0);
+    if (search) {
+      matchStage.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { phone: { $regex: search, $options: "i" } }
+      ];
+    }
 
-      const end = new Date();
-      end.setHours(23, 59, 59, 999);
+
+    /* =====================================================
+       🔥 DATE PICKER OVERRIDES FILTER
+    ===================================================== */
+    if (req.query.date) {
+      const start = new Date(`${selectedDate}T00:00:00`);
+      const end   = new Date(`${selectedDate}T23:59:59.999`);
 
       matchStage.bookingDateTime = { $gte: start, $lte: end };
     }
+    /* =====================================================
+       🔹 EXISTING FILTERS (UNCHANGED)
+    ===================================================== */
+    else {
+      if (filter === "today") {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
 
-    if (filter === "thisMonth") {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1);
-      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        const end = new Date();
+        end.setHours(23, 59, 59, 999);
 
-      matchStage.bookingDateTime = { $gte: start, $lte: end };
+        matchStage.bookingDateTime = { $gte: start, $lte: end };
+      }
+
+      if (filter === "thisMonth") {
+        const start = new Date(now.getFullYear(), now.getMonth(), 1);
+        const end = new Date(
+          now.getFullYear(),
+          now.getMonth() + 1,
+          0,
+          23,
+          59,
+          59,
+          999
+        );
+
+        matchStage.bookingDateTime = { $gte: start, $lte: end };
+      }
+
+      if (filter === "thisYear") {
+        const start = new Date(now.getFullYear(), 0, 1);
+        const end = new Date(
+          now.getFullYear(),
+          11,
+          31,
+          23,
+          59,
+          59,
+          999
+        );
+
+        matchStage.bookingDateTime = { $gte: start, $lte: end };
+      }
+
     }
 
-    if (filter === "thisYear") {
-      const start = new Date(now.getFullYear(), 0, 1);
-      const end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
-
-      matchStage.bookingDateTime = { $gte: start, $lte: end };
-    }
-
-    // 🔹 FETCH FROM DB
+    // 🔹 FETCH
     let bookings = await Reservation.find(matchStage).lean();
 
     // 🔹 SORT
@@ -474,8 +515,10 @@ router.get("/viewbar-booking-list", async (req, res) => {
       filter,
       sort: sortParam,
       limit,
+      search,
       currentPage: page,
       totalPages: Math.ceil(totalCount / limit) || 1,
+      selectedDate, // 🔥 PASS TO EJS
       username: req.session.username,
       isAdmin: req.session.isAdmin,
       isLogin: req.session.login
@@ -551,51 +594,149 @@ router.get("/availability", async (req, res) => {
 
 
 //Reseve the view bar
-router.post("/reserve", async (req, res) => {
-  const { name, phone, amount, remark, bookingDateTime, tables } = req.body;
-
-  if (!name || !phone || !amount || !bookingDateTime || !tables?.length) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
-
-  // 🔒 prevent double booking (date + time + table)
-  const conflict = await Reservation.findOne({
-    bookingDateTime,
-    tables: { $in: tables }
-  });
-
-  if (conflict) {
-    return res.status(409).json({
-      error: "Some tables already reserved for this time"
-    });
-  }
-
-  await Reservation.create({
-    name,
-    phone,
-    amount,
-    remark,
-    bookingDateTime: new Date(bookingDateTime),
-    tables,
-    bookingId: "BK" + Date.now()
-  });
-
-  console.log(req.body);
-
-  res.json({ success: true });
-});
-
-// Delete the view bar booking
-router.get("/delete-viewbar-booking/:id", async (req, res) => {
+router.post(
+  "/reserve",
+  (req, res, next) => {
+    req.uploadFolder = "viewbar";
+    next();
+  },
+  upload.single("image"),
+  async (req, res) => {
     try {
-        await Reservation.findByIdAndDelete(req.params.id);
-        res.redirect('/viewbar-booking-list');
+      // 🔐 Make sure user is logged in
+      if (!req.session || !req.session.username) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const {
+        name,
+        phone,
+        bookingDateTime,
+        amount,
+        transfer,
+        remark,
+        tables
+      } = req.body;
+
+      const booking = new Reservation({
+        name,
+        phone,
+        bookingDateTime: new Date(bookingDateTime),
+        amount,
+        transfer,
+        remark,
+        createBy: req.session.username, // ✅ FROM SESSION
+        tables: JSON.parse(tables),
+        image: req.file ? `/uploads/viewbar/${req.file.filename}` : null
+      });
+
+      await booking.save();
+
+      res.json({ success: true });
+
     } catch (err) {
-        console.error("Error deleting booking:", err);
-        res.status(500).send("Something went wrong");
+      console.error(err);
+      res.status(400).json({ error: err.message });
     }
+  }
+);
+
+//EDIT RESERVATION
+router.get("/edit-booking-viewbar/:id", async (req, res) => {
+  try {
+    if (!req.session || !req.session.username) {
+      return res.status(401).render("login");
+    }
+
+    const booking = await Reservation.findById(req.params.id).lean();
+
+    if (!booking) {
+      return res.status(404).send("Booking not found");
+    }
+
+    res.render("edit-booking-viewbar", {
+      booking,
+      tables: tables,
+      staticElements: staticElements,
+      existingTables: Array.isArray(booking.tables)
+        ? booking.tables
+        : [],
+      image: req.file ? `/uploads/viewbar/${req.file.filename}` : null,
+      username: req.session.username,
+      isAdmin: req.session.isAdmin,
+      isLogin: req.session.login
+    });
+
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error loading booking");
+  }
 });
 
+router.post(
+  "/update-viewbar/:id",
+  (req, res, next) => {
+    req.uploadFolder = "viewbar";
+    next();
+  },
+  upload.single("image"),
+  async (req, res) => {
+    try {
+      // 🔐 Auth check
+      if (!req.session || !req.session.username) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const update_id = req.params.id; // ✅ USE PARAM, NOT BODY
+      if (!update_id) {
+        return res.status(400).json({ error: "Missing booking ID" });
+      }
+
+      // ✅ Parse tables safely
+      let tables = [];
+      if (req.body.tables) {
+        try {
+          tables = JSON.parse(req.body.tables);
+        } catch (e) {
+          return res.status(400).json({ error: "Invalid tables data" });
+        }
+      }
+
+      const updatedData = {
+        name: req.body.name,
+        phone: req.body.phone,
+        bookingDateTime: new Date(req.body.bookingDateTime),
+        amount: Number(req.body.amount),
+        transfer: Number(req.body.transfer),
+        remark: req.body.remark,
+        createBy: req.session.username,
+        tables
+      };
+
+      // ✅ Only overwrite image if new one uploaded
+      if (req.file) {
+        updatedData.image = `/uploads/viewbar/${req.file.filename}`;
+      }
+
+      const updated = await Reservation.findByIdAndUpdate(
+        update_id,
+        updatedData,
+        { new: true }
+      );
+
+      if (!updated) {
+        return res.status(404).json({ error: "Reservation not found" });
+      }
+
+      res.json({ success: true, data: updated });
+
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
 
 //------------------ Coolly Chef Section----------------------//
 router.get("/coolly-chef-book", (req, res) => {
@@ -969,6 +1110,10 @@ router.get("/view-village-availability", async (req, res) => {
 //Reseve the view village
 router.post(
   "/reserve-view-village",
+  (req, res, next) => {
+    req.uploadFolder = "view-village";
+    next();
+  },
   upload.single("image"),
   async (req, res) => {
     try {
@@ -996,7 +1141,7 @@ router.post(
         remark,
         createBy: req.session.username, // ✅ FROM SESSION
         tables: JSON.parse(tables),
-        image: req.file ? `/uploads/${req.file.filename}` : null
+        image: req.file ? `/uploads/view-village/${req.file.filename}` : null
       });
 
       await booking.save();
@@ -1017,8 +1162,8 @@ router.get("/view-village-booking-list", async (req, res) => {
   }
 
   try {
-    const filter = req.query.filter || "incoming";
-    const sortParam = req.query.sort || "incoming";
+    const filter = req.query.filter || "today";
+    const sortParam = req.query.sort || "oldest";
     const limit = Number(req.query.limit) || 10;
     const page = Number(req.query.page) || 1;
     const skip = (page - 1) * limit;
@@ -1094,9 +1239,6 @@ router.get("/view-village-booking-list", async (req, res) => {
         matchStage.bookingDateTime = { $gte: start, $lte: end };
       }
 
-      if (filter === "incoming") {
-        matchStage.bookingDateTime = { $gte: now };
-      }
     }
 
     // 🔹 FETCH
@@ -1288,10 +1430,10 @@ router.get("/view-village-export-csv", async (req, res) => {
   }).lean();
 
   // CSV header
-  let csv = "Name,Phone,Table,Amount,Reservation Date,Note,Status,Created At\n";
+  let csv = "Name,Phone,Table,Amount,Reservation Date,Note,Status,Created By,Created At\n";
 
   bookings.forEach(b => {
-    csv += `"${b.name}","${b.phone}","${b.tables.join(" ")}","${b.amount}","${b.bookingDateTime.toISOString()}","${b.remark || ""}","${b.status}","${b.createBy}"\n`;
+    csv += `"${b.name}","${b.phone}","${b.tables.join(" ")}","${b.amount}","${b.bookingDateTime.toISOString()}","${b.remark || ""}","${b.status}","${b.createBy},"${b.createAt}""\n`;
   });
 
   res.header("Content-Type", "text/csv");
@@ -1317,7 +1459,7 @@ router.get("/edit-booking-view-village/:id", async (req, res) => {
       tables: viewVillageTables,
       staticElements: viewVillageStaticElements,
       existingTables: booking.tables, // ✅ IMPORTANT
-      image: req.file ? `/uploads/${req.file.filename}` : null,
+      image: req.file ? `/uploads/view-village/${req.file.filename}` : null,
       username: req.session.username,
       isAdmin: req.session.isAdmin,
       isLogin: req.session.login
@@ -1333,6 +1475,10 @@ router.get("/edit-booking-view-village/:id", async (req, res) => {
 
 router.post(
   "/update-view-village/:id",
+  (req, res, next) => {
+    req.uploadFolder = "view-village";
+    next();
+  },
   upload.single("image"),
   async (req, res) => {
     try {
@@ -1369,7 +1515,7 @@ router.post(
 
       // ✅ Only overwrite image if new one uploaded
       if (req.file) {
-        updatedData.image = `/uploads/${req.file.filename}`;
+        updatedData.image = `/uploads/view-village/${req.file.filename}`;
       }
 
       const updated = await reservationViewVillage.findByIdAndUpdate(
