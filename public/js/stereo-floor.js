@@ -181,7 +181,7 @@ confirmBtn.onclick = async () => {
   const date = datePicker.value;
 
   if (!name || !phone || !bookingTime || !amount || transfer === "" || selectedTables.size === 0) {
-    showErrorModal("Please fill all required fields");
+    showErrorModal("กรุณากรอกข้อมูลให้ครบถ้วน");
     return;
   }
 

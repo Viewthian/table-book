@@ -27,11 +27,20 @@ module.exports = [
     height: "20%"
   },
   {
+    id: "1st-wall-left",
+    label: "",
+    className: "wall-vertical-short",
+    left: "0.7%",
+    top: "5%",
+    width: "0.1%",
+    height: "70.7%"
+  },
+  {
     id: "cashier",
     label: "CASHIER",
     className: "cashier",
     labelRotate: 90,
-    left: "0.5%",
+    left: "1%",
     top: "48%",
     width: "5%",
     height: "14%"
@@ -125,6 +134,15 @@ module.exports = [
     top: "5%",
     width: "0%",
     height: "0%"
+  },
+  {
+    id: "2nd-wall-left",
+    label: "",
+    className: "wall-vertical-short",
+    left: "6%",
+    top: "75%",
+    width: "0.1%",
+    height: "20%"
   },
   {
     id: "entrance-2",
@@ -242,7 +260,7 @@ module.exports = [
     left: "39%",
     top: "30%",
     width: "0.01%",
-    height: "31%"
+    height: "45%"
   },
   {
   id: "toilet_m",

@@ -138,7 +138,7 @@
 
             <div>
               <small class="text-danger" id="phoneError"></small>
-              <input type="tel" id="phone" class="form-control" name="phone" pattern="^(0[0-9]{9}|\+66[0-9]{9})$"  value="" placeholder="Ex: 0812345678 or +66812345678">
+              <input type="tel" id="phone" class="form-control" name="phone" pattern="^(0[0-9]{9}|\+66[0-9]{9})$"  value="" placeholder="ตัวอย่าง 0812345678">
               
             </div>
 
@@ -229,7 +229,7 @@
       const phoneRegex = /^(0[0-9]{8,9}|\+66[0-9]{8,9})$/;
 
       if (!phoneRegex.test(phone)) {
-        this.setCustomValidity("Enter a valid Thai phone number (Ex: 0812345678 or +66812345678).");
+        this.setCustomValidity("Enter a valid Thai phone number (ตัวอย่าง 0812345678)");
       } else {
         this.setCustomValidity("");
       }

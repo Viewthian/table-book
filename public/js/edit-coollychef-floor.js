@@ -1,4 +1,4 @@
-const floor = document.getElementById("coolly-floor");
+const floor = document.getElementById("edit-coollychef-floor");
 const datePicker = document.getElementById("datePicker");
 const confirmBtn = document.getElementById("confirm");
 const tooltip = document.getElementById("tooltip");
@@ -12,9 +12,8 @@ const modalImg = document.getElementById("modalImage");
 const closeModal = document.querySelector(".close-modal");
 
 
-const selectedTables = new Set();
+const selectedTables = new Set(window.existingTables || []);
 let reservedInfo = {};
-
 
 /* -------------------- LOAD AVAILABILITY (DATE ONLY) -------------------- */
 
@@ -24,7 +23,7 @@ async function loadAvailability(date) {
 
   reservedInfo = data.reservedMap || {};
 
-  floor.innerHTML = "";               // 🔥 clear once
+  floor.innerHTML = "";
   renderStaticElements(staticElements);
   renderTables(reservedInfo);
 }
@@ -49,18 +48,7 @@ function renderStaticElements(elements) {
   });
 }
 
-
 function renderTables(reservedMap = {}) {
-
-  selectedTables.clear();
-
-  // const OFFSET_X = 10;
-
-  // const tables = originalTables.map(t => ({
-  //   ...t,
-  //   x: t.x + OFFSET_X
-  // }));
-
   tables.forEach(t => {
     const div = document.createElement("div");
     div.className = `table ${t.type}`;
@@ -69,53 +57,39 @@ function renderTables(reservedMap = {}) {
     div.style.top  = `${t.y}%`;
 
     const label = document.createElement("span");
-    label.innerHTML = t.id.replace("|", "<br>");   //No this line, table data is gone
+    label.innerHTML = t.id.replace("|", "<br>");
     div.appendChild(label);
 
     if (t.rotate) {
       div.style.transform = `rotate(${t.rotate}deg)`;
     }
 
-    // RESERVED TABLE
-    if (reservedMap[t.id]) {
-      console.log("Reserved:", t.id);
+    const isOwn = selectedTables.has(t.id);
+    const reservedByOther = reservedMap[t.id] && !isOwn;
+
+    /* 🔴 RESERVED BY OTHERS (LOCKED) */
+    if (reservedByOther) {
       div.classList.add("reserved");
-
-      div.addEventListener("mouseenter", e => {
-        console.log("ENTER", t.id);
-        tooltip.innerHTML = `
-          <strong>Table:</strong> ${t.id}<br>
-          <strong>Name:</strong> ${reservedMap[t.id].name}<br>
-          <strong>Phone:</strong> ${reservedMap[t.id].phone}<br>
-          <strong>Time:</strong> ${reservedMap[t.id].bookingTime}<br>
-          <strong>Note:</strong> ${reservedMap[t.id].remark}
-        `;
-        tooltip.style.display = "block";
-      });
-
-      div.addEventListener("mousemove", e => {
-        const rect = floor.getBoundingClientRect();
-
-        tooltip.style.left = (e.clientX - rect.left + 10) + "px";
-        tooltip.style.top  = (e.clientY - rect.top  + 10) + "px"; 
-      });
-
-      div.addEventListener("mouseleave", () => {
-        tooltip.style.display = "none";
-      });
+      div.style.cursor = "not-allowed";
+      floor.appendChild(div);
+      return;
     }
-    // AVAILABLE TABLE
-    else {
-      div.addEventListener("click", () => {
-        div.classList.toggle("selected");
 
-        if (selectedTables.has(t.id)) {
-          selectedTables.delete(t.id);
-        } else {
-          selectedTables.add(t.id);
-        }
-      });
+    /* 🟢 OWN TABLE (PRESELECTED & EDITABLE) */
+    if (isOwn) {
+      div.classList.add("own", "selected");
     }
+
+    /* 🟢 CLICK TO SELECT / UNSELECT */
+    div.addEventListener("click", () => {
+      if (selectedTables.has(t.id)) {
+        selectedTables.delete(t.id);
+        div.classList.remove("selected");
+      } else {
+        selectedTables.add(t.id);
+        div.classList.add("selected");
+      }
+    });
 
     floor.appendChild(div);
   });
@@ -123,13 +97,21 @@ function renderTables(reservedMap = {}) {
 
 
 
+
 /* -------------------- INITIAL LOAD -------------------- */
 
 window.addEventListener("DOMContentLoaded", () => {
+  generateTimeSlots();
+
+  if (window.existingTime) {
+    timePicker.value = window.existingTime;
+  }
+
   if (datePicker.value) {
     loadAvailability(datePicker.value);
   }
 });
+
 
 datePicker.addEventListener("change", e => {
   loadAvailability(e.target.value);
@@ -180,29 +162,26 @@ slipInput.addEventListener("change", () => {
 });
 
 
-/* -------------------- CONFIRM BOOKING -------------------- */
 
+//UPDATE
 confirmBtn.onclick = async () => {
+  const id = document.getElementById("update_id").value;
   const name = document.getElementById("name").value.trim();
   const phone = document.getElementById("phone").value.trim();
-  const bookingTime = document.getElementById("timePicker").value;
-  const amount = document.getElementById("amount").value;
-  const transfer = document.getElementById("transfer").value;
+  const date = document.getElementById("datePicker").value;
+  const time = document.getElementById("timePicker").value;
+  const amount = Number(document.getElementById("amount").value);
+  const transfer = Number(document.getElementById("transfer").value);
   const remark = document.getElementById("remark").value;
-  const date = datePicker.value;
+  const image = document.getElementById("slip").files[0];
 
-  if (!name || !phone || !bookingTime || !amount || transfer === "" || selectedTables.size === 0) {
+  if (!name || !phone || !date || !time || !amount || selectedTables.size === 0) {
     showErrorModal("กรุณากรอกข้อมูลให้ครบถ้วน");
     return;
   }
 
-  const bookingDateTime = new Date(`${date}T${bookingTime}:00`);
-  if (isNaN(bookingDateTime.getTime())) {
-    showErrorModal("Invalid date/time");
-    return;
-  }
+  const bookingDateTime = new Date(`${date}T${time}:00`);
 
-  // ✅ FormData for image upload
   const formData = new FormData();
   formData.append("name", name);
   formData.append("phone", phone);
@@ -212,11 +191,9 @@ confirmBtn.onclick = async () => {
   formData.append("remark", remark);
   formData.append("tables", JSON.stringify([...selectedTables]));
 
-  if (slipInput.files[0]) {
-    formData.append("image", slipInput.files[0]);
-  }
+  if (image) formData.append("image", image);
 
-  const res = await fetch("/reserve-coolly", {
+  const res = await fetch(`/update-coolly/${id}`, {
     method: "POST",
     body: formData
   });
@@ -224,18 +201,19 @@ confirmBtn.onclick = async () => {
   const data = await res.json();
 
   if (!res.ok) {
-    showErrorModal(data.error || "Reservation failed");
+    showErrorModal(data.error || "แก้ไขไม่สำเร็จ โปรดลองอีกครั้ง");
     return;
   }
 
-  showSuccessModal();
-
+  showSuccessModal("แก้ไขการจองสำเร็จ!");
+  
   // 👇 SCROLL TO TOP
   window.scrollTo({
     top: 0,
     behavior: "smooth"
   });
 };
+
 
 
 function showErrorModal(message) {
@@ -262,18 +240,16 @@ if (previewImg) {
   });
 }
 
-// closeModal.addEventListener("click", () => {
-//   imageModal.style.display = "none";
-//   document.body.style.overflow = "";
-// });
+closeModal.addEventListener("click", () => {
+  imageModal.style.display = "none";
+  document.body.style.overflow = "";
+});
 
 // Close when clicking outside image
-// imageModal.addEventListener("click", e => {
-//   if (e.target === imageModal) {
-//     imageModal.style.display = "none";
-//     document.body.style.overflow = "";
-//   }
-// });
-
-
+imageModal.addEventListener("click", e => {
+  if (e.target === imageModal) {
+    imageModal.style.display = "none";
+    document.body.style.overflow = "";
+  }
+});
 

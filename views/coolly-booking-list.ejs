@@ -13,7 +13,7 @@
   <meta name="author" content="" />
   <link rel="shortcut icon" href="images/favicon.png" type="">
 
-  <title> Coolly Chef Restaurant </title>
+  <title> Coolly Chef </title>
 
   <!-- bootstrap core css -->
   <link rel="stylesheet" type="text/css" href="css/bootstrap.css" />
@@ -222,7 +222,43 @@
         background-color: #1e40af; /* blue-700 */
       }
 
+      /* Preview slip on the table */
+      .image-hover-wrapper {
+        position: relative;
+        display: inline-block;
+      }
 
+      .slip-thumb {
+        max-width: 40px;
+        border-radius: 4px;
+        cursor: zoom-in;
+      }
+
+      /* hidden preview */
+      .slip-preview {
+        position: absolute;
+        top: 50%;
+        left: 60px;
+        transform: translateY(-50%);
+        max-width: 350px;
+        max-height: 350px;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        display: none;
+        background: #fff;
+        z-index: 9999;
+      }
+
+      /* show on hover */
+      .image-hover-wrapper:hover .slip-preview {
+        display: block;
+      }
+
+      td[data-label="Note"] {
+        white-space: normal;      /* allow line break */
+        word-break: break-word;  /* break long words */
+        max-width: 150px;        /* optional – control width */
+      }
 
   </style>
 
@@ -240,7 +276,7 @@
         <nav class="navbar navbar-expand-lg custom_nav-container ">
           <a class="navbar-brand" href="/">
             <span>
-              Coolly Chef Restaurant
+              Coolly Chef
             </span>
           </a>
 
@@ -251,17 +287,17 @@
           <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav  mx-auto ">
               <li class="nav-item active">
-                <a class="nav-link" href="coolly-booking-list">รายชื่อลูกค้า <span class="sr-only">(current)</span> </a>
+                <a class="nav-link" href="/coolly-booking-list">รายชื่อลูกค้า <span class="sr-only">(current)</span> </a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="coolly-dashboard">กราฟสถิติ </a>
+                <a class="nav-link" href="/coolly-dashboard">กราฟสถิติ </a>
               </li>
               <li class="nav-item">
-                <a class="nav-link" href="coolly-chef-book">จองโต๊ะ</a>
+                <a class="nav-link" href="/coolly-book">จองโต๊ะ</a>
               </li>
               <% if (isAdmin) { %>
               <li class="nav-item ">
-                <a class="nav-link" href="members">จัดการสมาชิก  </a>
+                <a class="nav-link" href="/members">จัดการสมาชิก  </a>
               </li>
               <% } %>
             </ul>
@@ -295,7 +331,7 @@
           <div class="detail-box">
             <div class="heading_container">
               <h2>
-                Coolly Chef Reservation
+                Coolly Chef
               </h2>
             </div>
            
@@ -310,12 +346,6 @@
                 }) %>
               </span>
             </p>
-
-
-
-
-        
-
           </div>
           
         </div>
@@ -325,22 +355,17 @@
         <div class="filter-item">
           <label>Filter</label>
           <select name="filter" onchange="this.form.submit()">
-            <option value="all" <%= filter==="all"?"selected":"" %>>All</option>
-            <option value="today" <%= filter==="today"?"selected":"" %>>Today</option>
-            <option value="thisMonth" <%= filter==="thisMonth"?"selected":"" %>>This Month</option>
-            <option value="thisYear" <%= filter==="thisYear"?"selected":"" %>>This Year</option>
+            <option value="all" <%= filter==="all"?"selected":"" %>>ทั้งหมด</option>
+            <option value="thisMonth" <%= filter==="thisMonth"?"selected":"" %>>จองเดือนนี้</option>
+            <option value="thisYear" <%= filter==="thisYear"?"selected":"" %>>จองปีนี้</option>
           </select>
         </div>
 
         <div class="filter-item">
           <label>Sort</label>
           <select name="sort" onchange="this.form.submit()">
-            <!-- <option value="incoming" <%= filter==="incoming"?"selected":"" %>>Incoming</option>
-            <option value="newest" <%= sort==="newest"?"selected":"" %>>Newest</option>
-            <option value="oldest" <%= sort==="oldest"?"selected":"" %>>Oldest</option> -->
-            <option value="incoming" <%= sort==="incoming"?"selected":"" %>>Incoming</option>
-            <option value="newest" <%= sort==="newest"?"selected":"" %>>Newest</option>
-            <option value="oldest" <%= sort==="oldest"?"selected":"" %>>Oldest</option>
+            <option value="oldest" <%= sort==="oldest"?"selected":"" %>>เรียงวันที่น้อยไปมาก</option>
+            <option value="newest" <%= sort==="newest"?"selected":"" %>>เรียงวันที่มากไปน้อย</option>
           </select>
         </div>
 
@@ -356,35 +381,59 @@
         <input
           style="margin-top: 20px;"
           id="searchBox"
+          name="search"
           type="text"
+          value="<%= search || '' %>"
           placeholder="Search by name or phone…"
           class="px-3 py-2 rounded-lg border w-60 focus:ring focus:ring-blue-200"
         />
 
         <input type="hidden" name="page" value="<%= currentPage %>">
 
+        <div class="filter-item">
+          <label>Date</label>
+          <input
+            type="date"
+            name="date"
+            value="<%= selectedDate %>"
+            onchange="this.form.submit()"
+            class="px-2 py-1 rounded border"
+          >
+        </div>
+
         <div style="text-align: right; margin-top: 15px;">
-          <a href="/coolly-export-csv" class="export-btn">Export CSV</a>
+          <a
+            href="/coolly-export-csv?<%= new URLSearchParams({ date: selectedDate }) %>"
+            class="export-btn"
+          >
+            Export CSV
+          </a>
         </div>
       </form>
 
+      
+
+      
+
+      
 
       <!-- <div class="table-responsive-custom"> -->
             <table class="responsive-table">
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Name</th>
-                  <th>Phone</th>
-                  <th>Table No</th>
-                  <th>Guests</th>
-                  <th>Date/Time</th>
-                  <th>Note</th>
-                  <th>Status</th>
-
-                  <th>Check-in</th>
-                  <!-- <th>Edit</th> -->
-                  <th>Delete</th>
+                  <th>ชื่อ</th>
+                  <th>เบอร์โทร</th>
+                  <th>เลขที่โต๊ะ</th>
+                  <th>จำนวน</th>
+                  <th>วันที่/เวลา</th>
+                  <th>รายละเอียด</th>
+                  <th>สถานะ</th>
+                  <th>เช็คอิน</th>
+                  <th>สลิป</th>
+                  <th>ผู้จอง</th>
+                  <th>แก้ไข</th>
+                  <th>ลบ</th>
                 </tr>
               </thead>
 
@@ -404,15 +453,19 @@
                     <td data-label="Table"><%= b.tables.join(", ") %></td>
                     <td data-label="Guest"><%= b.amount %></td>
                     <td data-label="Date/Time">
-                      <%= b.bookingDateTime.toLocaleString("en-GB", {
-                        timeZone: "Asia/Bangkok",
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: false
-                      }) %>
+                      <% if (b.bookingDateTime) { %>
+                        <%= new Date(b.bookingDateTime).toLocaleString("th-TH", {
+                          timeZone: "Asia/Bangkok",
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: false
+                        }) %>
+                      <% } else { %>
+                        -
+                      <% } %>
                     </td>
                     <td data-label="Note"><%= b.remark || "-" %></td>
                     <td data-label="Status"><%= b.status %></td>
@@ -423,9 +476,28 @@
                         <%= b.status === "checkin" ? "checked" : "" %>
                       >
                     </td>
-                    <!-- <td>
-                      <a href="/edit-booking/<%= b._id %>" class="btn-sm btn-edit">Edit</a>
-                    </td> -->
+                    <td data-label="Slip">
+                      <% if (b.image) { %>
+                        <div class="image-hover-wrapper">
+                          <img
+                            src="<%= b.image %>"
+                            class="slip-thumb"
+                            alt="Slip Image"
+                          >
+                          <img
+                            src="<%= b.image %>"
+                            class="slip-preview"
+                            alt="Slip Preview"
+                          >
+                        </div>
+                      <% } else { %>
+                        -
+                      <% } %>
+                    </td>
+                    <td data-label="createBy"><%= b.createBy %></td>
+                    <td>
+                      <a href="/edit-booking-coolly/<%= b._id %>" class="btn-sm btn-edit">Edit</a>
+                    </td>
                     <td>
                       <a href="/delete-coolly-booking/<%= b._id %>"
                         onclick="return confirm('Do you want to delete?')"
@@ -481,7 +553,7 @@
   <!-- End Google Map -->
 
   <script>
-document.addEventListener("DOMContentLoaded", () => {
+  document.addEventListener("DOMContentLoaded", () => {
   const rows = [...document.querySelectorAll("tbody tr")];
 
   const searchInput = document.getElementById("searchInput");
@@ -528,25 +600,25 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 
-<script>
-  const searchInput = document.getElementById("searchBox");
-  const rows = document.querySelectorAll(".booking-row");
+  <script>
+    const searchInput = document.getElementById("searchBox");
+    const rows = document.querySelectorAll(".booking-row");
 
-  searchInput.addEventListener("input", function () {
-    const value = this.value.toLowerCase();
+    searchInput.addEventListener("input", function () {
+      const value = this.value.toLowerCase();
 
-    rows.forEach(row => {
-      const name = (row.dataset.name || "").toLowerCase();
-      const phone = (row.dataset.phone || "").toLowerCase();
+      rows.forEach(row => {
+        const name = (row.dataset.name || "").toLowerCase();
+        const phone = (row.dataset.phone || "").toLowerCase();
 
-      if (name.includes(value) || phone.includes(value)) {
-        row.style.display = "";
-      } else {
-        row.style.display = "none";
-      }
+        if (name.includes(value) || phone.includes(value)) {
+          row.style.display = "";
+        } else {
+          row.style.display = "none";
+        }
+      });
     });
-  });
-</script>
+  </script>
 
 
 
@@ -576,9 +648,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
   </script>
-
-
-
 
 
 </body>

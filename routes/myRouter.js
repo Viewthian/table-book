@@ -94,975 +94,7 @@ router.get('/', (req, res) => {
   });
 });
 
-
-// Display Overview All Booking Data Over A Year
-router.get("/viewbar-dashboard", async (req, res) => {
-  if (!req.session.login) {
-    return res.render("login");
-  }
-  try {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth(); // 0-based
-
-    /* --------------------------------------
-      TODAY STATS (precise start/end)
-    -------------------------------------- */
-    const startOfToday = new Date(year, month, now.getDate(), 0, 0, 0, 0);
-    const endOfToday = new Date(year, month, now.getDate(), 23, 59, 59, 999);
-
-    const todayTotalBookings = await Reservation.countDocuments({
-      status: { $in: ["booked", "checkin"] },
-      bookingDateTime: { $gte: startOfToday, $lte: endOfToday }
-    });
-
-    const todayCheckin = await Reservation.countDocuments({
-      status: "checkin",
-      bookingDateTime: { $gte: startOfToday, $lte: endOfToday }
-    });
-
-    /* --------------------------------------
-      MONTHLY BOOKINGS FOR CARDS (this calendar month)
-      -> include only booked & checkin statuses for the monthly total
-    -------------------------------------- */
-    const startOfCurrentMonth = new Date(year, month, 1, 0, 0, 0, 0);
-    const endOfCurrentMonth = new Date(year, month + 1, 0, 23, 59, 59, 999);
-
-    const monthlyBookings = await Reservation.countDocuments({
-      status: { $in: ["booked", "checkin"] },
-      bookingDateTime: { $gte: startOfCurrentMonth, $lte: endOfCurrentMonth }
-    });
-
-    /* --------------------------------------
-      TOTAL BOOKINGS (this year)
-      -> use the full year range for the current year
-    -------------------------------------- */
-    const startOfYear = new Date(year, 0, 1, 0, 0, 0, 0);
-    const endOfYear = new Date(year, 11, 31, 23, 59, 59, 999);
-
-    const totalBookingsThisYear = await Reservation.countDocuments({
-      bookingDateTime: { $gte: startOfYear, $lte: endOfYear }
-    });
-
-    /* --------------------------------------
-      STACKED BAR CHART: BOOKED VS CHECKIN (per month)
-      -> run counts in parallel for speed and accuracy
-    -------------------------------------- */
-    const monthLabels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-
-    const bookedPromises = [];
-    const checkinPromises = [];
-
-    for (let i = 0; i < 12; i++) {
-      const startOfMonth = new Date(year, i, 1, 0, 0, 0, 0);
-      const endOfMonth = new Date(year, i + 1, 0, 23, 59, 59, 999);
-
-      // pushed as promises to execute in parallel
-      bookedPromises.push(
-        Reservation.countDocuments({
-          status: { $in: ["booked", "checkin"] },
-          bookingDateTime: { $gte: startOfMonth, $lte: endOfMonth }
-        })
-      );
-
-      checkinPromises.push(
-        Reservation.countDocuments({
-          status: "checkin",
-          bookingDateTime: { $gte: startOfMonth, $lte: endOfMonth }
-        })
-      );
-    }
-
-    const bookedCounts = await Promise.all(bookedPromises);
-    const checkinCounts = await Promise.all(checkinPromises);
-
-    // console.log("Now:", now.toISOString());
-    // console.log("StartOfCurrentMonth:", startOfCurrentMonth.toISOString());
-    // console.log("EndOfCurrentMonth:", endOfCurrentMonth.toISOString());
-    // console.log("monthlyBookings:", monthlyBookings);
-    // console.log("totalBookingsThisYear:", totalBookingsThisYear);
-
-
-    /* --------------------------------------
-      SEND TO FRONTEND
-    -------------------------------------- */
-    res.render("viewbar-dashboard", {
-      todayCheckin,
-      todayTotalBookings,
-      monthlyBookings,
-      totalBookingsThisYear,
-      monthLabels,
-      bookedCounts,
-      checkinCounts,
-      username: req.session.username,
-      isAdmin: req.session.isAdmin,
-      isLogin: req.session.login
-    });
-
-  } catch (err) {
-    console.error("Dashboard error:", err);
-    res.status(500).send("Error loading dashboard");
-  }
-});
-
-// Only Admin can see 'Add-Member' button on the dashboard page
-router.get("/add-member", async (req, res) => {
-  if (req.session.login) {
-    res.render("add-member", { 
-    error: null, 
-    success: null,
-    username: req.session.username,
-    isAdmin: req.session.isAdmin,
-    isLogin: req.session.login
-   });
-  } else {
-    res.render('login');
-  }
-  
-});
-
-// HANDLE MEMBER CREATION
-router.post("/add-member", async (req, res) => {
-  const { username, email, password } = req.body;
-
-  try {
-    // Check for duplicate username/email
-    const existing = await memberTable.findOne({ 
-      $or: [{ username }, { email }] 
-    });
-
-    if (existing) {
-      return res.render("add-member", { 
-        error: "Username or Email already exists.",
-        success: null
-      });
-    }
-
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    // Create new member
-    await memberTable.create({
-      username,
-      email,
-      passwordHash
-    });
-
-    return res.render("add-member", { 
-      success: "Member created successfully!",
-      error: null,
-      username: req.session.username,
-      isAdmin: req.session.isAdmin,
-      isLogin: req.session.login
-    });
-
-  } catch (err) {
-    console.error(err);
-    return res.render("add-member", { 
-      error: "Something went wrong",
-      success: null,
-      username: req.session.username,
-      isAdmin: req.session.isAdmin,
-      isLogin: req.session.login
-    });
-  }
-});
-
-
-router.post("/create-admin", async (req, res) => {
-  // Check for Authorization header
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Basic ')) {
-    res.set('WWW-Authenticate', 'Basic realm="User Visible Realm"');
-    return res.status(401).send('Authentication required.');
-  }
-
-  // Decode base64 credentials
-  const base64Credentials = authHeader.split(' ')[1];
-  const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
-  const [username, password] = credentials.split(':');
-
-  // Verify credentials
-  if (username !== BASIC_AUTH_USER || password !== BASIC_AUTH_PASS) {
-    return res.status(403).send('Forbidden: Invalid credentials');
-  }
-
-  // Proceed with your existing handler logic
-  const { username: newUser, email, password: newPassword } = req.body;
-
-  try {
-    const existing = await memberTable.findOne({
-      $or: [{ username: newUser }, { email }]
-    });
-
-    if (existing) {
-      return res.render("create-admin", {
-        error: "Username or Email already exists.",
-        success: null
-      });
-    }
-
-    const passwordHash = await bcrypt.hash(newPassword, 10);
-
-    await memberTable.create({
-      username: newUser,
-      email,
-      passwordHash
-    });
-
-    return res.render("create-admin", {
-      success: "Member created successfully!",
-      error: null
-    });
-  } catch (err) {
-    console.error(err);
-    return res.render("create-admin", {
-      error: "Something went wrong",
-      success: null
-    });
-  }
-});
-
-router.get('/logout',(req,res)=>{
-    req.session.destroy((err)=>{
-        res.redirect('/login')
-    })
-})
-
-// ======== Manage Members ============
-router.get("/members", async (req, res) => {
-  try {
-    const members = await memberTable.find().sort({ createdAt: -1 });
-
-    res.render("members", {
-      members,
-      username: req.session.username,
-      isAdmin: req.session.isAdmin,
-      isLogin: req.session.login
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error loading members");
-  }
-});
-
-router.get("/delete-member/:id", async (req, res) => {
-  try {
-    await memberTable.findByIdAndDelete(req.params.id);
-    res.redirect("/members");
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error deleting member");
-  }
-});
-
-router.get("/edit-member/:id", async (req, res) => {
-  try {
-    const member = await memberTable.findById(req.params.id);
-    res.render("edit-member", { member });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error editing member");
-  }
-});
-
-router.post("/edit-member/:id", async (req, res) => {
-  const { username, email } = req.body;
-
-  try {
-    await memberTable.findByIdAndUpdate(req.params.id, {
-      username,
-      email
-    });
-
-    res.redirect("/members");
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error updating member");
-  }
-});
-
-
-// ====================================
-// EXPORT CSV VIEW BAR
-// ====================================
-router.get("/viewbar-export-csv", async (req, res) => {
-  const { date } = req.query;
-
-  const selectedDate =
-    date || new Date().toISOString().slice(0, 10);
-
-  const start = new Date(`${selectedDate}T00:00:00+07:00`);
-  const end   = new Date(`${selectedDate}T23:59:59+07:00`);
-
-  const bookings = await Reservation.find({
-    bookingDateTime: { $gte: start, $lte: end }
-  }).lean();
-
-  // CSV header
-  let csv = "Name,Phone,Table,Amount,Reservation Date,Note,Status,Create By,Created At\n";
-
-  bookings.forEach(b => {
-    csv += `"${b.name}","${b.phone}","${b.tables.join(" ")}","${b.amount}","${b.bookingDateTime.toISOString()}","${b.remark || ""}","${b.status}","${b.createBy}","${b.createAt}"\n`;
-  });
-
-  res.header("Content-Type", "text/csv");
-  res.attachment(`reservations_${selectedDate}.csv`);
-  res.send(csv);
-});
-
-
-router.get("/viewbar-booking-list", async (req, res) => {
-  if (!req.session.login) {
-    return res.render("login");
-  }
-
-  try {
-    const filter = req.query.filter || "today";
-    const sortParam = req.query.sort || "oldest";
-    const limit = Number(req.query.limit) || 10;
-    const page = Number(req.query.page) || 1;
-    const skip = (page - 1) * limit;
-
-    const now = new Date();
-
-    const search = req.query.search || "";
-
-    // 🔹 NEW: selected date (default = today)
-    const selectedDate =
-      req.query.date || new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-
-    let matchStage = {};
-
-    if (search) {
-      matchStage.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { phone: { $regex: search, $options: "i" } }
-      ];
-    }
-
-
-    /* =====================================================
-       🔥 DATE PICKER OVERRIDES FILTER
-    ===================================================== */
-    if (req.query.date) {
-      const start = new Date(`${selectedDate}T00:00:00`);
-      const end   = new Date(`${selectedDate}T23:59:59.999`);
-
-      matchStage.bookingDateTime = { $gte: start, $lte: end };
-    }
-    /* =====================================================
-       🔹 EXISTING FILTERS (UNCHANGED)
-    ===================================================== */
-    else {
-      if (filter === "today") {
-        const start = new Date();
-        start.setHours(0, 0, 0, 0);
-
-        const end = new Date();
-        end.setHours(23, 59, 59, 999);
-
-        matchStage.bookingDateTime = { $gte: start, $lte: end };
-      }
-
-      if (filter === "thisMonth") {
-        const start = new Date(now.getFullYear(), now.getMonth(), 1);
-        const end = new Date(
-          now.getFullYear(),
-          now.getMonth() + 1,
-          0,
-          23,
-          59,
-          59,
-          999
-        );
-
-        matchStage.bookingDateTime = { $gte: start, $lte: end };
-      }
-
-      if (filter === "thisYear") {
-        const start = new Date(now.getFullYear(), 0, 1);
-        const end = new Date(
-          now.getFullYear(),
-          11,
-          31,
-          23,
-          59,
-          59,
-          999
-        );
-
-        matchStage.bookingDateTime = { $gte: start, $lte: end };
-      }
-
-    }
-
-    // 🔹 FETCH
-    let bookings = await Reservation.find(matchStage).lean();
-
-    // 🔹 SORT
-    if (sortParam === "newest") {
-      bookings.sort((a, b) => b.createdAt - a.createdAt);
-    } else {
-      bookings.sort((a, b) => a.bookingDateTime - b.bookingDateTime);
-    }
-
-    const totalCount = bookings.length;
-    const paginated = bookings.slice(skip, skip + limit);
-
-    return res.render("viewbar-booking-list", {
-      bookings: paginated,
-      filter,
-      sort: sortParam,
-      limit,
-      search,
-      currentPage: page,
-      totalPages: Math.ceil(totalCount / limit) || 1,
-      selectedDate, // 🔥 PASS TO EJS
-      username: req.session.username,
-      isAdmin: req.session.isAdmin,
-      isLogin: req.session.login
-    });
-
-  } catch (err) {
-    console.error(err);
-    return res.status(500).send("Error loading booking list");
-  }
-});
-
-// When customer come and check-in to get the table, staffs shall tick the checkbox
-router.post("/booking/view-bar-checkin/:id", async (req, res) => {
-  try {
-    const { status } = req.body;
-
-    await Reservation.findByIdAndUpdate(req.params.id, {
-      status,
-      checkin_time: new Date()
-    });
-
-    return res.json({ success: true });
-
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ success: false });
-  }
-});
-
-router.get("/viewbar-book", (req, res) => {
-  if (!req.session.login) {
-    return res.render("login");
-  }
-  const today = getTodayDateTH();
-
-  res.render("viewbar-floorplan", {
-    tables: tables,
-    staticElements: staticElements,
-    today: today,
-    username: req.session.username,
-    isAdmin: req.session.isAdmin,
-    isLogin: req.session.login
-  });
-});
-
-router.get("/availability", async (req, res) => {
-  const { date } = req.query; // yyyy-mm-dd
-
-  if (!date) return res.status(400).json({ error: "Date required" });
-
-  const start = new Date(date + "T00:00:00");
-  const end = new Date(date + "T23:59:59");
-
-  const reservations = await Reservation.find({
-    bookingDateTime: { $gte: start, $lte: end }
-  });
-
-  const reservedMap = {};
-
-  reservations.forEach(r => {
-    r.tables.forEach(tableId => {
-      reservedMap[tableId] = {
-        name: r.name,
-        phone: r.phone,
-        bookingTime: r.bookingDateTime.toTimeString().slice(0,5),
-        remark: r.remark || "-"
-      };
-    });
-  });
-
-  res.json({ reservedMap });
-});
-
-
-//Reseve the view bar
-router.post(
-  "/reserve",
-  (req, res, next) => {
-    req.uploadFolder = "viewbar";
-    next();
-  },
-  upload.single("image"),
-  async (req, res) => {
-    try {
-      // 🔐 Make sure user is logged in
-      if (!req.session || !req.session.username) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-
-      const {
-        name,
-        phone,
-        bookingDateTime,
-        amount,
-        transfer,
-        remark,
-        tables
-      } = req.body;
-
-      const booking = new Reservation({
-        name,
-        phone,
-        bookingDateTime: new Date(bookingDateTime),
-        amount,
-        transfer,
-        remark,
-        createBy: req.session.username, // ✅ FROM SESSION
-        tables: JSON.parse(tables),
-        image: req.file ? `/uploads/viewbar/${req.file.filename}` : null
-      });
-
-      await booking.save();
-
-      res.json({ success: true });
-
-    } catch (err) {
-      console.error(err);
-      res.status(400).json({ error: err.message });
-    }
-  }
-);
-
-//EDIT RESERVATION
-router.get("/edit-booking-viewbar/:id", async (req, res) => {
-  try {
-    if (!req.session || !req.session.username) {
-      return res.status(401).render("login");
-    }
-
-    const booking = await Reservation.findById(req.params.id).lean();
-
-    if (!booking) {
-      return res.status(404).send("Booking not found");
-    }
-
-    res.render("edit-booking-viewbar", {
-      booking,
-      tables: tables,
-      staticElements: staticElements,
-      existingTables: Array.isArray(booking.tables)
-        ? booking.tables
-        : [],
-      image: req.file ? `/uploads/viewbar/${req.file.filename}` : null,
-      username: req.session.username,
-      isAdmin: req.session.isAdmin,
-      isLogin: req.session.login
-    });
-
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error loading booking");
-  }
-});
-
-router.post(
-  "/update-viewbar/:id",
-  (req, res, next) => {
-    req.uploadFolder = "viewbar";
-    next();
-  },
-  upload.single("image"),
-  async (req, res) => {
-    try {
-      // 🔐 Auth check
-      if (!req.session || !req.session.username) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-
-      const update_id = req.params.id; // ✅ USE PARAM, NOT BODY
-      if (!update_id) {
-        return res.status(400).json({ error: "Missing booking ID" });
-      }
-
-      // ✅ Parse tables safely
-      let tables = [];
-      if (req.body.tables) {
-        try {
-          tables = JSON.parse(req.body.tables);
-        } catch (e) {
-          return res.status(400).json({ error: "Invalid tables data" });
-        }
-      }
-
-      const updatedData = {
-        name: req.body.name,
-        phone: req.body.phone,
-        bookingDateTime: new Date(req.body.bookingDateTime),
-        amount: Number(req.body.amount),
-        transfer: Number(req.body.transfer),
-        remark: req.body.remark,
-        createBy: req.session.username,
-        tables
-      };
-
-      // ✅ Only overwrite image if new one uploaded
-      if (req.file) {
-        updatedData.image = `/uploads/viewbar/${req.file.filename}`;
-      }
-
-      const updated = await Reservation.findByIdAndUpdate(
-        update_id,
-        updatedData,
-        { new: true }
-      );
-
-      if (!updated) {
-        return res.status(404).json({ error: "Reservation not found" });
-      }
-
-      res.json({ success: true, data: updated });
-
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: err.message });
-    }
-  }
-);
-
-//------------------ Coolly Chef Section----------------------//
-router.get("/coolly-chef-book", (req, res) => {
-  if (!req.session.login) {
-    return res.render("login");
-  }
-  const today = getTodayDateTH();
-
-  res.render("coolly-chef-floorplan", {
-    tables: coollyTables,
-    staticElements: coollyStaticElements,
-    today: today,
-    username: req.session.username,
-    isAdmin: req.session.isAdmin,
-    isLogin: req.session.login
-  });
-});
-
-router.get("/coolly-availability", async (req, res) => {
-  const { date } = req.query; // yyyy-mm-dd
-
-  if (!date) return res.status(400).json({ error: "Date required" });
-
-  const start = new Date(date + "T00:00:00");
-  const end = new Date(date + "T23:59:59");
-
-  const reservations = await reservationCoolly.find({
-    bookingDateTime: { $gte: start, $lte: end }
-  });
-
-  const reservedMap = {};
-
-  reservations.forEach(r => {
-    r.tables.forEach(tableId => {
-      reservedMap[tableId] = {
-        name: r.name,
-        phone: r.phone,
-        bookingTime: r.bookingDateTime.toTimeString().slice(0,5),
-        remark: r.remark || "-"
-      };
-    });
-  });
-
-  res.json({ reservedMap });
-});
-
-//Reseve coolly
-router.post("/reserve-coolly", async (req, res) => {
-  const { name, phone, amount, remark, bookingDateTime, tables } = req.body;
-
-  if (!name || !phone || !amount || !bookingDateTime || !tables?.length) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
-
-  // 🔒 prevent double booking (date + time + table)
-  const conflict = await reservationCoolly.findOne({
-    bookingDateTime,
-    tables: { $in: tables }
-  });
-
-  if (conflict) {
-    return res.status(409).json({
-      error: "Some tables already reserved for this time"
-    });
-  }
-
-  await reservationCoolly.create({
-    name,
-    phone,
-    amount,
-    remark,
-    bookingDateTime: new Date(bookingDateTime),
-    tables,
-    bookingId: "BK" + Date.now()
-  });
-
-  console.log(req.body);
-
-  res.json({ success: true });
-});
-
-
-router.get("/coolly-booking-list", async (req, res) => {
-  if (!req.session.login) {
-    return res.render("login");
-  }
-  try {
-    const filter = req.query.filter || "incoming";
-    const sortParam = req.query.sort || "incoming";
-    const limit = Number(req.query.limit) || 10;
-    const page = Number(req.query.page) || 1;
-    const skip = (page - 1) * limit;
-
-    const now = new Date();
-
-    let matchStage = {};
-
-    // 🔹 DATE FILTERS (using bookingDateTime)
-    if (filter === "today") {
-      const start = new Date();
-      start.setHours(0, 0, 0, 0);
-
-      const end = new Date();
-      end.setHours(23, 59, 59, 999);
-
-      matchStage.bookingDateTime = { $gte: start, $lte: end };
-    }
-
-    if (filter === "thisMonth") {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1);
-      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-
-      matchStage.bookingDateTime = { $gte: start, $lte: end };
-    }
-
-    if (filter === "thisYear") {
-      const start = new Date(now.getFullYear(), 0, 1);
-      const end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
-
-      matchStage.bookingDateTime = { $gte: start, $lte: end };
-    }
-
-    if (filter === "incoming") {
-      matchStage.bookingDateTime = { $gte: now };
-    }
-
-    // 🔹 FETCH FROM DB
-    let bookings = await reservationCoolly.find(matchStage).lean();
-
-    // 🔹 SORT
-    if (sortParam === "newest") {
-      bookings.sort((a, b) => b.createdAt - a.createdAt);
-    } else {
-      bookings.sort((a, b) => a.bookingDateTime - b.bookingDateTime);
-    }
-
-    const totalCount = bookings.length;
-    const paginated = bookings.slice(skip, skip + limit);
-
-    return res.render("coolly-booking-list", {
-      bookings: paginated,
-      filter,
-      sort: sortParam,
-      limit,
-      currentPage: page,
-      totalPages: Math.ceil(totalCount / limit) || 1,
-      username: req.session.username,
-      isAdmin: req.session.isAdmin,
-      isLogin: req.session.login
-    });
-
-  } catch (err) {
-    console.error(err);
-    return res.status(500).send("Error loading booking list");
-  }
-});
-
-// When customer come and check-in to get the table, staffs shall tick the checkbox
-router.post("/booking/coolly-checkin/:id", async (req, res) => {
-  try {
-    const { status } = req.body;
-
-    await reservationCoolly.findByIdAndUpdate(req.params.id, {
-      status,
-      checkin_time: new Date()
-    });
-
-    return res.json({ success: true });
-
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ success: false });
-  }
-});
-
-router.get("/delete-coolly-booking/:id", async (req, res) => {
-    try {
-        await reservationCoolly.findByIdAndDelete(req.params.id);
-        res.redirect('/coolly-booking-list');
-    } catch (err) {
-        console.error("Error deleting booking:", err);
-        res.status(500).send("Something went wrong");
-    }
-});
-
-// Display Overview All Booking Data Over A Year
-router.get("/coolly-dashboard", async (req, res) => {
-  if (!req.session.login) {
-    return res.render("login");
-  }
-  try {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth(); // 0-based
-
-    /* --------------------------------------
-      TODAY STATS (precise start/end)
-    -------------------------------------- */
-    const startOfToday = new Date(year, month, now.getDate(), 0, 0, 0, 0);
-    const endOfToday = new Date(year, month, now.getDate(), 23, 59, 59, 999);
-
-    const todayTotalBookings = await reservationCoolly.countDocuments({
-      status: { $in: ["booked", "checkin"] },
-      bookingDateTime: { $gte: startOfToday, $lte: endOfToday }
-    });
-
-    const todayCheckin = await reservationCoolly.countDocuments({
-      status: "checkin",
-      bookingDateTime: { $gte: startOfToday, $lte: endOfToday }
-    });
-
-    /* --------------------------------------
-      MONTHLY BOOKINGS FOR CARDS (this calendar month)
-      -> include only booked & checkin statuses for the monthly total
-    -------------------------------------- */
-    const startOfCurrentMonth = new Date(year, month, 1, 0, 0, 0, 0);
-    const endOfCurrentMonth = new Date(year, month + 1, 0, 23, 59, 59, 999);
-
-    const monthlyBookings = await reservationCoolly.countDocuments({
-      status: { $in: ["booked", "checkin"] },
-      bookingDateTime: { $gte: startOfCurrentMonth, $lte: endOfCurrentMonth }
-    });
-
-    /* --------------------------------------
-      TOTAL BOOKINGS (this year)
-      -> use the full year range for the current year
-    -------------------------------------- */
-    const startOfYear = new Date(year, 0, 1, 0, 0, 0, 0);
-    const endOfYear = new Date(year, 11, 31, 23, 59, 59, 999);
-
-    const totalBookingsThisYear = await reservationCoolly.countDocuments({
-      bookingDateTime: { $gte: startOfYear, $lte: endOfYear }
-    });
-
-    /* --------------------------------------
-      STACKED BAR CHART: BOOKED VS CHECKIN (per month)
-      -> run counts in parallel for speed and accuracy
-    -------------------------------------- */
-    const monthLabels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-
-    const bookedPromises = [];
-    const checkinPromises = [];
-
-    for (let i = 0; i < 12; i++) {
-      const startOfMonth = new Date(year, i, 1, 0, 0, 0, 0);
-      const endOfMonth = new Date(year, i + 1, 0, 23, 59, 59, 999);
-
-      // pushed as promises to execute in parallel
-      bookedPromises.push(
-        reservationCoolly.countDocuments({
-          status: { $in: ["booked", "checkin"] },
-          bookingDateTime: { $gte: startOfMonth, $lte: endOfMonth }
-        })
-      );
-
-      checkinPromises.push(
-        reservationCoolly.countDocuments({
-          status: "checkin",
-          bookingDateTime: { $gte: startOfMonth, $lte: endOfMonth }
-        })
-      );
-    }
-
-    const bookedCounts = await Promise.all(bookedPromises);
-    const checkinCounts = await Promise.all(checkinPromises);
-
-    // console.log("Now:", now.toISOString());
-    // console.log("StartOfCurrentMonth:", startOfCurrentMonth.toISOString());
-    // console.log("EndOfCurrentMonth:", endOfCurrentMonth.toISOString());
-    // console.log("monthlyBookings:", monthlyBookings);
-    // console.log("totalBookingsThisYear:", totalBookingsThisYear);
-
-
-    /* --------------------------------------
-      SEND TO FRONTEND
-    -------------------------------------- */
-    res.render("coolly-dashboard", {
-      todayCheckin,
-      todayTotalBookings,
-      monthlyBookings,
-      totalBookingsThisYear,
-      monthLabels,
-      bookedCounts,
-      checkinCounts,
-      username: req.session.username,
-      isAdmin: req.session.isAdmin,
-      isLogin: req.session.login
-    });
-
-  } catch (err) {
-    console.error("Dashboard error:", err);
-    res.status(500).send("Error loading dashboard");
-  }
-});
-
-// ====================================
-// EXPORT CSV COOLLY CHEF
-// ====================================
-router.get("/coolly-export-csv", async (req, res) => {
-  try {
-    const bookings = await reservationCoolly.find().sort({ bookingDateTime: 1 });
-
-    let csv = "Name,Phone,Table,Amount,Reservation Date,Note,Status,Created At\n";
-    // name, phone, amount, remark, bookingDateTime, tables
-
-    bookings.forEach(b => {
-      const reservationDate = format(new Date(b.bookingDateTime), 
-        "dd MMMM yyyy HH:mm", { locale: th });
-
-      const createdAt = format(new Date(b.createdAt), 
-        "dd MMMM yyyy HH:mm", { locale: th });
-
-      csv += `"${b.name}","${b.phone}","${b.tables}","${b.amount}","${reservationDate}","${b.remark || ""}","${b.status}","${createdAt}"\n`;
-    });
-
-    res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader("Content-Disposition", "attachment; filename=coolly-chef-bookings.csv");
-    res.send("\uFEFF" + csv);   // BOM for Excel Thai support
-
-  } catch (err) {
-    console.error("CSV Export Error:", err);
-    res.status(500).send("Error exporting CSV");
-  }
-});
-
-//------------------ The View Village Section----------------------//
+//------------------ START THE VIEW VILLAGE SECTION----------------------//
 router.get("/view-village-book", (req, res) => {
   if (!req.session.login) {
     return res.render("login");
@@ -1414,31 +446,33 @@ router.get("/view-village-dashboard", async (req, res) => {
 });
 
 // ====================================
-// EXPORT CSV COOLLY CHEF
+// EXPORT CSV VIEW VILLAGE
 // ====================================
 router.get("/view-village-export-csv", async (req, res) => {
-  const { date } = req.query;
+  try {
+    const bookings = await reservationViewVillage.find().sort({ bookingDateTime: 1 });
 
-  const selectedDate =
-    date || new Date().toISOString().slice(0, 10);
+    let csv = "Name,Phone,Table,Amount,Reservation Date,Note,Status,Created At\n";
+    // name, phone, amount, remark, bookingDateTime, tables
 
-  const start = new Date(`${selectedDate}T00:00:00+07:00`);
-  const end   = new Date(`${selectedDate}T23:59:59+07:00`);
+    bookings.forEach(b => {
+      const reservationDate = format(new Date(b.bookingDateTime), 
+        "dd MMMM yyyy HH:mm", { locale: th });
 
-  const bookings = await reservationViewVillage.find({
-    bookingDateTime: { $gte: start, $lte: end }
-  }).lean();
+      const createdAt = format(new Date(b.createdAt), 
+        "dd MMMM yyyy HH:mm", { locale: th });
 
-  // CSV header
-  let csv = "Name,Phone,Table,Amount,Reservation Date,Note,Status,Created By,Created At\n";
+      csv += `"${b.name}","${b.phone}","${b.tables}","${b.amount}","${reservationDate}","${b.remark || ""}","${b.status}","${createdAt}"\n`;
+    });
 
-  bookings.forEach(b => {
-    csv += `"${b.name}","${b.phone}","${b.tables.join(" ")}","${b.amount}","${b.bookingDateTime.toISOString()}","${b.remark || ""}","${b.status}","${b.createBy},"${b.createAt}""\n`;
-  });
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", "attachment; filename=view-village-bookings.csv");
+    res.send("\uFEFF" + csv);   // BOM for Excel Thai support
 
-  res.header("Content-Type", "text/csv");
-  res.attachment(`reservations_${selectedDate}.csv`);
-  res.send(csv);
+  } catch (err) {
+    console.error("CSV Export Error:", err);
+    res.status(500).send("Error exporting CSV");
+  }
 });
 
 //EDIT RESERVATION
@@ -1537,10 +571,481 @@ router.post(
   }
 );
 
+//---------------- END THE VIEW VILLAGE ----------------//
+
+//------------------ VIEW BAR --------------------------//
 
 
 
-//------------------ Stereo bar Section----------------------//
+router.get("/viewbar-booking-list", async (req, res) => {
+  if (!req.session.login) {
+    return res.render("login");
+  }
+
+  try {
+    const filter = req.query.filter || "today";
+    const sortParam = req.query.sort || "oldest";
+    const limit = Number(req.query.limit) || 10;
+    const page = Number(req.query.page) || 1;
+    const skip = (page - 1) * limit;
+
+    const now = new Date();
+
+    const search = req.query.search || "";
+
+    // 🔹 NEW: selected date (default = today)
+    const selectedDate =
+      req.query.date || new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+    let matchStage = {};
+
+    if (search) {
+      matchStage.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { phone: { $regex: search, $options: "i" } }
+      ];
+    }
+
+
+    /* =====================================================
+       🔥 DATE PICKER OVERRIDES FILTER
+    ===================================================== */
+    if (req.query.date) {
+      const start = new Date(`${selectedDate}T00:00:00`);
+      const end   = new Date(`${selectedDate}T23:59:59.999`);
+
+      matchStage.bookingDateTime = { $gte: start, $lte: end };
+    }
+    /* =====================================================
+       🔹 EXISTING FILTERS (UNCHANGED)
+    ===================================================== */
+    else {
+      if (filter === "today") {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+
+        const end = new Date();
+        end.setHours(23, 59, 59, 999);
+
+        matchStage.bookingDateTime = { $gte: start, $lte: end };
+      }
+
+      if (filter === "thisMonth") {
+        const start = new Date(now.getFullYear(), now.getMonth(), 1);
+        const end = new Date(
+          now.getFullYear(),
+          now.getMonth() + 1,
+          0,
+          23,
+          59,
+          59,
+          999
+        );
+
+        matchStage.bookingDateTime = { $gte: start, $lte: end };
+      }
+
+      if (filter === "thisYear") {
+        const start = new Date(now.getFullYear(), 0, 1);
+        const end = new Date(
+          now.getFullYear(),
+          11,
+          31,
+          23,
+          59,
+          59,
+          999
+        );
+
+        matchStage.bookingDateTime = { $gte: start, $lte: end };
+      }
+
+    }
+
+    // 🔹 FETCH
+    let bookings = await Reservation.find(matchStage).lean();
+
+    // 🔹 SORT
+    if (sortParam === "newest") {
+      bookings.sort((a, b) => b.createdAt - a.createdAt);
+    } else {
+      bookings.sort((a, b) => a.bookingDateTime - b.bookingDateTime);
+    }
+
+    const totalCount = bookings.length;
+    const paginated = bookings.slice(skip, skip + limit);
+
+    return res.render("viewbar-booking-list", {
+      bookings: paginated,
+      filter,
+      sort: sortParam,
+      limit,
+      search,
+      currentPage: page,
+      totalPages: Math.ceil(totalCount / limit) || 1,
+      selectedDate, // 🔥 PASS TO EJS
+      username: req.session.username,
+      isAdmin: req.session.isAdmin,
+      isLogin: req.session.login
+    });
+
+  } catch (err) {
+    console.error(err);
+    return res.status(500).send("Error loading booking list");
+  }
+});
+
+// When customer come and check-in to get the table, staffs shall tick the checkbox
+router.post("/booking/view-bar-checkin/:id", async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    await Reservation.findByIdAndUpdate(req.params.id, {
+      status,
+      checkin_time: new Date()
+    });
+
+    return res.json({ success: true });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false });
+  }
+});
+
+router.get("/viewbar-book", (req, res) => {
+  if (!req.session.login) {
+    return res.render("login");
+  }
+  const today = getTodayDateTH();
+
+  res.render("viewbar-floorplan", {
+    tables: tables,
+    staticElements: staticElements,
+    today: today,
+    username: req.session.username,
+    isAdmin: req.session.isAdmin,
+    isLogin: req.session.login
+  });
+});
+
+router.get("/availability", async (req, res) => {
+  const { date } = req.query; // yyyy-mm-dd
+
+  if (!date) return res.status(400).json({ error: "Date required" });
+
+  const start = new Date(date + "T00:00:00");
+  const end = new Date(date + "T23:59:59");
+
+  const reservations = await Reservation.find({
+    bookingDateTime: { $gte: start, $lte: end }
+  });
+
+  const reservedMap = {};
+
+  reservations.forEach(r => {
+    r.tables.forEach(tableId => {
+      reservedMap[tableId] = {
+        name: r.name,
+        phone: r.phone,
+        bookingTime: r.bookingDateTime.toTimeString().slice(0,5),
+        remark: r.remark || "-"
+      };
+    });
+  });
+
+  res.json({ reservedMap });
+});
+
+
+//Reseve the view bar
+router.post(
+  "/reserve",
+  (req, res, next) => {
+    req.uploadFolder = "viewbar";
+    next();
+  },
+  upload.single("image"),
+  async (req, res) => {
+    try {
+      // 🔐 Make sure user is logged in
+      if (!req.session || !req.session.username) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const {
+        name,
+        phone,
+        bookingDateTime,
+        amount,
+        transfer,
+        remark,
+        tables
+      } = req.body;
+
+      const booking = new Reservation({
+        name,
+        phone,
+        bookingDateTime: new Date(bookingDateTime),
+        amount,
+        transfer,
+        remark,
+        createBy: req.session.username, // ✅ FROM SESSION
+        tables: JSON.parse(tables),
+        image: req.file ? `/uploads/viewbar/${req.file.filename}` : null
+      });
+
+      await booking.save();
+
+      res.json({ success: true });
+
+    } catch (err) {
+      console.error(err);
+      res.status(400).json({ error: err.message });
+    }
+  }
+);
+
+//EDIT RESERVATION
+router.get("/edit-booking-viewbar/:id", async (req, res) => {
+  try {
+    if (!req.session || !req.session.username) {
+      return res.status(401).render("login");
+    }
+
+    const booking = await Reservation.findById(req.params.id).lean();
+
+    if (!booking) {
+      return res.status(404).send("Booking not found");
+    }
+
+    res.render("edit-booking-viewbar", {
+      booking,
+      tables: tables,
+      staticElements: staticElements,
+      existingTables: Array.isArray(booking.tables)
+        ? booking.tables
+        : [],
+      image: req.file ? `/uploads/viewbar/${req.file.filename}` : null,
+      username: req.session.username,
+      isAdmin: req.session.isAdmin,
+      isLogin: req.session.login
+    });
+
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error loading booking");
+  }
+});
+
+router.post(
+  "/update-viewbar/:id",
+  (req, res, next) => {
+    req.uploadFolder = "viewbar";
+    next();
+  },
+  upload.single("image"),
+  async (req, res) => {
+    try {
+      // 🔐 Auth check
+      if (!req.session || !req.session.username) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const update_id = req.params.id; // ✅ USE PARAM, NOT BODY
+      if (!update_id) {
+        return res.status(400).json({ error: "Missing booking ID" });
+      }
+
+      // ✅ Parse tables safely
+      let tables = [];
+      if (req.body.tables) {
+        try {
+          tables = JSON.parse(req.body.tables);
+        } catch (e) {
+          return res.status(400).json({ error: "Invalid tables data" });
+        }
+      }
+
+      const updatedData = {
+        name: req.body.name,
+        phone: req.body.phone,
+        bookingDateTime: new Date(req.body.bookingDateTime),
+        amount: Number(req.body.amount),
+        transfer: Number(req.body.transfer),
+        remark: req.body.remark,
+        createBy: req.session.username,
+        tables
+      };
+
+      // ✅ Only overwrite image if new one uploaded
+      if (req.file) {
+        updatedData.image = `/uploads/viewbar/${req.file.filename}`;
+      }
+
+      const updated = await Reservation.findByIdAndUpdate(
+        update_id,
+        updatedData,
+        { new: true }
+      );
+
+      if (!updated) {
+        return res.status(404).json({ error: "Reservation not found" });
+      }
+
+      res.json({ success: true, data: updated });
+
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+// Display Overview All Booking Data Over A Year
+router.get("/viewbar-dashboard", async (req, res) => {
+  if (!req.session.login) {
+    return res.render("login");
+  }
+  try {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth(); // 0-based
+
+    /* --------------------------------------
+      TODAY STATS (precise start/end)
+    -------------------------------------- */
+    const startOfToday = new Date(year, month, now.getDate(), 0, 0, 0, 0);
+    const endOfToday = new Date(year, month, now.getDate(), 23, 59, 59, 999);
+
+    const todayTotalBookings = await Reservation.countDocuments({
+      status: { $in: ["booked", "checkin"] },
+      bookingDateTime: { $gte: startOfToday, $lte: endOfToday }
+    });
+
+    const todayCheckin = await Reservation.countDocuments({
+      status: "checkin",
+      bookingDateTime: { $gte: startOfToday, $lte: endOfToday }
+    });
+
+    /* --------------------------------------
+      MONTHLY BOOKINGS FOR CARDS (this calendar month)
+      -> include only booked & checkin statuses for the monthly total
+    -------------------------------------- */
+    const startOfCurrentMonth = new Date(year, month, 1, 0, 0, 0, 0);
+    const endOfCurrentMonth = new Date(year, month + 1, 0, 23, 59, 59, 999);
+
+    const monthlyBookings = await Reservation.countDocuments({
+      status: { $in: ["booked", "checkin"] },
+      bookingDateTime: { $gte: startOfCurrentMonth, $lte: endOfCurrentMonth }
+    });
+
+    /* --------------------------------------
+      TOTAL BOOKINGS (this year)
+      -> use the full year range for the current year
+    -------------------------------------- */
+    const startOfYear = new Date(year, 0, 1, 0, 0, 0, 0);
+    const endOfYear = new Date(year, 11, 31, 23, 59, 59, 999);
+
+    const totalBookingsThisYear = await Reservation.countDocuments({
+      bookingDateTime: { $gte: startOfYear, $lte: endOfYear }
+    });
+
+    /* --------------------------------------
+      STACKED BAR CHART: BOOKED VS CHECKIN (per month)
+      -> run counts in parallel for speed and accuracy
+    -------------------------------------- */
+    const monthLabels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+    const bookedPromises = [];
+    const checkinPromises = [];
+
+    for (let i = 0; i < 12; i++) {
+      const startOfMonth = new Date(year, i, 1, 0, 0, 0, 0);
+      const endOfMonth = new Date(year, i + 1, 0, 23, 59, 59, 999);
+
+      // pushed as promises to execute in parallel
+      bookedPromises.push(
+        Reservation.countDocuments({
+          status: { $in: ["booked", "checkin"] },
+          bookingDateTime: { $gte: startOfMonth, $lte: endOfMonth }
+        })
+      );
+
+      checkinPromises.push(
+        Reservation.countDocuments({
+          status: "checkin",
+          bookingDateTime: { $gte: startOfMonth, $lte: endOfMonth }
+        })
+      );
+    }
+
+    const bookedCounts = await Promise.all(bookedPromises);
+    const checkinCounts = await Promise.all(checkinPromises);
+
+    // console.log("Now:", now.toISOString());
+    // console.log("StartOfCurrentMonth:", startOfCurrentMonth.toISOString());
+    // console.log("EndOfCurrentMonth:", endOfCurrentMonth.toISOString());
+    // console.log("monthlyBookings:", monthlyBookings);
+    // console.log("totalBookingsThisYear:", totalBookingsThisYear);
+
+
+    /* --------------------------------------
+      SEND TO FRONTEND
+    -------------------------------------- */
+    res.render("viewbar-dashboard", {
+      todayCheckin,
+      todayTotalBookings,
+      monthlyBookings,
+      totalBookingsThisYear,
+      monthLabels,
+      bookedCounts,
+      checkinCounts,
+      username: req.session.username,
+      isAdmin: req.session.isAdmin,
+      isLogin: req.session.login
+    });
+
+  } catch (err) {
+    console.error("Dashboard error:", err);
+    res.status(500).send("Error loading dashboard");
+  }
+});
+
+// ====================================
+// EXPORT CSV VIEW BAR
+// ====================================
+router.get("/viewbar-export-csv", async (req, res) => {
+  try {
+    const bookings = await Reservation.find().sort({ bookingDateTime: 1 });
+
+    let csv = "Name,Phone,Table,Amount,Reservation Date,Note,Status,Created At\n";
+    // name, phone, amount, remark, bookingDateTime, tables
+
+    bookings.forEach(b => {
+      const reservationDate = format(new Date(b.bookingDateTime), 
+        "dd MMMM yyyy HH:mm", { locale: th });
+
+      const createdAt = format(new Date(b.createdAt), 
+        "dd MMMM yyyy HH:mm", { locale: th });
+
+      csv += `"${b.name}","${b.phone}","${b.tables}","${b.amount}","${reservationDate}","${b.remark || ""}","${b.status}","${createdAt}"\n`;
+    });
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", "attachment; filename=view-bar-bookings.csv");
+    res.send("\uFEFF" + csv);   // BOM for Excel Thai support
+
+  } catch (err) {
+    console.error("CSV Export Error:", err);
+    res.status(500).send("Error exporting CSV");
+  }
+});
+
+//----------------------- END VIEW BAR ----------------------------------//
+
+//------------------ STEREO BAR SECTOIN ----------------------//
 router.get("/stereo-book", (req, res) => {
   if (!req.session.login) {
     return res.render("login");
@@ -1891,7 +1396,7 @@ router.get("/stereo-dashboard", async (req, res) => {
 });
 
 // ====================================
-// EXPORT CSV COOLLY CHEF
+// EXPORT CSV STEREO BAR
 // ====================================
 router.get("/stereo-export-csv", async (req, res) => {
   try {
@@ -1935,8 +1440,8 @@ router.get("/edit-booking-stereobar/:id", async (req, res) => {
 
     res.render("edit-booking-stereobar", {
       booking,
-      tables: tables,
-      staticElements: staticElements,
+      tables: stereoTables,
+      staticElements: stereoStaticElements,
       existingTables: Array.isArray(booking.tables)
         ? booking.tables
         : [],
@@ -2016,6 +1521,676 @@ router.post(
     }
   }
 );
+
+//---------------------- END STEREO BAR ----------------------------//
+
+//------------------ COOLLY CHEF SECTION------------------------//
+router.get("/coolly-book", (req, res) => {
+  if (!req.session.login) {
+    return res.render("login");
+  }
+  const today = getTodayDateTH();
+
+  res.render("coolly-chef-floorplan", {
+    tables: coollyTables,
+    staticElements: coollyStaticElements,
+    today: today,
+    username: req.session.username,
+    isAdmin: req.session.isAdmin,
+    isLogin: req.session.login
+  });
+});
+
+router.get("/coolly-availability", async (req, res) => {
+  const { date } = req.query; // yyyy-mm-dd
+
+  if (!date) return res.status(400).json({ error: "Date required" });
+
+  const start = new Date(date + "T00:00:00");
+  const end = new Date(date + "T23:59:59");
+
+  const reservations = await reservationCoolly.find({
+    bookingDateTime: { $gte: start, $lte: end }
+  });
+
+  const reservedMap = {};
+
+  reservations.forEach(r => {
+    r.tables.forEach(tableId => {
+      reservedMap[tableId] = {
+        name: r.name,
+        phone: r.phone,
+        bookingTime: r.bookingDateTime.toTimeString().slice(0,5),
+        remark: r.remark || "-"
+      };
+    });
+  });
+
+  res.json({ reservedMap });
+});
+
+//Reseve coolly
+router.post(
+  "/reserve-coolly",
+  (req, res, next) => {
+    req.uploadFolder = "coolly";
+    next();
+  },
+  upload.single("image"),
+  async (req, res) => {
+    try {
+      // 🔐 Make sure user is logged in
+      if (!req.session || !req.session.username) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const {
+        name,
+        phone,
+        bookingDateTime,
+        amount,
+        transfer,
+        remark,
+        tables
+      } = req.body;
+
+      const booking = new reservationCoolly({
+        name,
+        phone,
+        bookingDateTime: new Date(bookingDateTime),
+        amount,
+        transfer,
+        remark,
+        createBy: req.session.username, // ✅ FROM SESSION
+        tables: JSON.parse(tables),
+        image: req.file ? `/uploads/coolly/${req.file.filename}` : null
+      });
+
+      await booking.save();
+
+      res.json({ success: true });
+
+    } catch (err) {
+      console.error(err);
+      res.status(400).json({ error: err.message });
+    }
+  }
+);
+
+
+router.get("/coolly-booking-list", async (req, res) => {
+  if (!req.session.login) {
+    return res.render("login");
+  }
+
+  try {
+    const filter = req.query.filter || "today";
+    const sortParam = req.query.sort || "oldest";
+    const limit = Number(req.query.limit) || 10;
+    const page = Number(req.query.page) || 1;
+    const skip = (page - 1) * limit;
+
+    const now = new Date();
+
+    const search = req.query.search || "";
+
+    // 🔹 NEW: selected date (default = today)
+    const selectedDate =
+      req.query.date || new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+    let matchStage = {};
+
+    if (search) {
+      matchStage.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { phone: { $regex: search, $options: "i" } }
+      ];
+    }
+
+
+    /* =====================================================
+       🔥 DATE PICKER OVERRIDES FILTER
+    ===================================================== */
+    if (req.query.date) {
+      const start = new Date(`${selectedDate}T00:00:00`);
+      const end   = new Date(`${selectedDate}T23:59:59.999`);
+
+      matchStage.bookingDateTime = { $gte: start, $lte: end };
+    }
+    /* =====================================================
+       🔹 EXISTING FILTERS (UNCHANGED)
+    ===================================================== */
+    else {
+      if (filter === "today") {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+
+        const end = new Date();
+        end.setHours(23, 59, 59, 999);
+
+        matchStage.bookingDateTime = { $gte: start, $lte: end };
+      }
+
+      if (filter === "thisMonth") {
+        const start = new Date(now.getFullYear(), now.getMonth(), 1);
+        const end = new Date(
+          now.getFullYear(),
+          now.getMonth() + 1,
+          0,
+          23,
+          59,
+          59,
+          999
+        );
+
+        matchStage.bookingDateTime = { $gte: start, $lte: end };
+      }
+
+      if (filter === "thisYear") {
+        const start = new Date(now.getFullYear(), 0, 1);
+        const end = new Date(
+          now.getFullYear(),
+          11,
+          31,
+          23,
+          59,
+          59,
+          999
+        );
+
+        matchStage.bookingDateTime = { $gte: start, $lte: end };
+      }
+
+    }
+
+    // 🔹 FETCH
+    let bookings = await reservationCoolly.find(matchStage).lean();
+
+    // 🔹 SORT
+    if (sortParam === "newest") {
+      bookings.sort((a, b) => b.createdAt - a.createdAt);
+    } else {
+      bookings.sort((a, b) => a.bookingDateTime - b.bookingDateTime);
+    }
+
+    const totalCount = bookings.length;
+    const paginated = bookings.slice(skip, skip + limit);
+
+    return res.render("coolly-booking-list", {
+      bookings: paginated,
+      filter,
+      sort: sortParam,
+      limit,
+      search,
+      currentPage: page,
+      totalPages: Math.ceil(totalCount / limit) || 1,
+      selectedDate, // 🔥 PASS TO EJS
+      username: req.session.username,
+      isAdmin: req.session.isAdmin,
+      isLogin: req.session.login
+    });
+
+  } catch (err) {
+    console.error(err);
+    return res.status(500).send("Error loading booking list");
+  }
+});
+
+// When customer come and check-in to get the table, staffs shall tick the checkbox
+router.post("/booking/coolly-checkin/:id", async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    await reservationCoolly.findByIdAndUpdate(req.params.id, {
+      status,
+      checkin_time: new Date()
+    });
+
+    return res.json({ success: true });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false });
+  }
+});
+
+router.get("/delete-coolly-booking/:id", async (req, res) => {
+    try {
+        await reservationCoolly.findByIdAndDelete(req.params.id);
+        res.redirect('/coolly-booking-list');
+    } catch (err) {
+        console.error("Error deleting booking:", err);
+        res.status(500).send("Something went wrong");
+    }
+});
+
+// Display Overview All Booking Data Over A Year
+router.get("/coolly-dashboard", async (req, res) => {
+  if (!req.session.login) {
+    return res.render("login");
+  }
+  try {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth(); // 0-based
+
+    /* --------------------------------------
+      TODAY STATS (precise start/end)
+    -------------------------------------- */
+    const startOfToday = new Date(year, month, now.getDate(), 0, 0, 0, 0);
+    const endOfToday = new Date(year, month, now.getDate(), 23, 59, 59, 999);
+
+    const todayTotalBookings = await reservationCoolly.countDocuments({
+      status: { $in: ["booked", "checkin"] },
+      bookingDateTime: { $gte: startOfToday, $lte: endOfToday }
+    });
+
+    const todayCheckin = await reservationCoolly.countDocuments({
+      status: "checkin",
+      bookingDateTime: { $gte: startOfToday, $lte: endOfToday }
+    });
+
+    /* --------------------------------------
+      MONTHLY BOOKINGS FOR CARDS (this calendar month)
+      -> include only booked & checkin statuses for the monthly total
+    -------------------------------------- */
+    const startOfCurrentMonth = new Date(year, month, 1, 0, 0, 0, 0);
+    const endOfCurrentMonth = new Date(year, month + 1, 0, 23, 59, 59, 999);
+
+    const monthlyBookings = await reservationCoolly.countDocuments({
+      status: { $in: ["booked", "checkin"] },
+      bookingDateTime: { $gte: startOfCurrentMonth, $lte: endOfCurrentMonth }
+    });
+
+    /* --------------------------------------
+      TOTAL BOOKINGS (this year)
+      -> use the full year range for the current year
+    -------------------------------------- */
+    const startOfYear = new Date(year, 0, 1, 0, 0, 0, 0);
+    const endOfYear = new Date(year, 11, 31, 23, 59, 59, 999);
+
+    const totalBookingsThisYear = await reservationCoolly.countDocuments({
+      bookingDateTime: { $gte: startOfYear, $lte: endOfYear }
+    });
+
+    /* --------------------------------------
+      STACKED BAR CHART: BOOKED VS CHECKIN (per month)
+      -> run counts in parallel for speed and accuracy
+    -------------------------------------- */
+    const monthLabels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+    const bookedPromises = [];
+    const checkinPromises = [];
+
+    for (let i = 0; i < 12; i++) {
+      const startOfMonth = new Date(year, i, 1, 0, 0, 0, 0);
+      const endOfMonth = new Date(year, i + 1, 0, 23, 59, 59, 999);
+
+      // pushed as promises to execute in parallel
+      bookedPromises.push(
+        reservationCoolly.countDocuments({
+          status: { $in: ["booked", "checkin"] },
+          bookingDateTime: { $gte: startOfMonth, $lte: endOfMonth }
+        })
+      );
+
+      checkinPromises.push(
+        reservationCoolly.countDocuments({
+          status: "checkin",
+          bookingDateTime: { $gte: startOfMonth, $lte: endOfMonth }
+        })
+      );
+    }
+
+    const bookedCounts = await Promise.all(bookedPromises);
+    const checkinCounts = await Promise.all(checkinPromises);
+
+    // console.log("Now:", now.toISOString());
+    // console.log("StartOfCurrentMonth:", startOfCurrentMonth.toISOString());
+    // console.log("EndOfCurrentMonth:", endOfCurrentMonth.toISOString());
+    // console.log("monthlyBookings:", monthlyBookings);
+    // console.log("totalBookingsThisYear:", totalBookingsThisYear);
+
+
+    /* --------------------------------------
+      SEND TO FRONTEND
+    -------------------------------------- */
+    res.render("coolly-dashboard", {
+      todayCheckin,
+      todayTotalBookings,
+      monthlyBookings,
+      totalBookingsThisYear,
+      monthLabels,
+      bookedCounts,
+      checkinCounts,
+      username: req.session.username,
+      isAdmin: req.session.isAdmin,
+      isLogin: req.session.login
+    });
+
+  } catch (err) {
+    console.error("Dashboard error:", err);
+    res.status(500).send("Error loading dashboard");
+  }
+});
+
+// ====================================
+// EXPORT CSV COOLLY CHEF
+// ====================================
+router.get("/coolly-export-csv", async (req, res) => {
+  try {
+    const bookings = await reservationCoolly.find().sort({ bookingDateTime: 1 });
+
+    let csv = "Name,Phone,Table,Amount,Reservation Date,Note,Status,Created At\n";
+    // name, phone, amount, remark, bookingDateTime, tables
+
+    bookings.forEach(b => {
+      const reservationDate = format(new Date(b.bookingDateTime), 
+        "dd MMMM yyyy HH:mm", { locale: th });
+
+      const createdAt = format(new Date(b.createdAt), 
+        "dd MMMM yyyy HH:mm", { locale: th });
+
+      csv += `"${b.name}","${b.phone}","${b.tables}","${b.amount}","${reservationDate}","${b.remark || ""}","${b.status}","${createdAt}"\n`;
+    });
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", "attachment; filename=coolly-chef-bookings.csv");
+    res.send("\uFEFF" + csv);   // BOM for Excel Thai support
+
+  } catch (err) {
+    console.error("CSV Export Error:", err);
+    res.status(500).send("Error exporting CSV");
+  }
+});
+
+//EDIT RESERVATION
+router.get("/edit-booking-coolly/:id", async (req, res) => {
+  try {
+    if (!req.session || !req.session.username) {
+      return res.status(401).render("login");
+    }
+
+    const booking = await reservationCoolly.findById(req.params.id).lean();
+
+    if (!booking) {
+      return res.status(404).send("Booking not found");
+    }
+
+    res.render("edit-booking-coolly", {
+      booking,
+      tables: coollyTables,
+      staticElements: coollyStaticElements,
+      existingTables: Array.isArray(booking.tables)
+        ? booking.tables
+        : [],
+      image: req.file ? `/uploads/coolly/${req.file.filename}` : null,
+      username: req.session.username,
+      isAdmin: req.session.isAdmin,
+      isLogin: req.session.login
+    });
+
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error loading booking");
+  }
+});
+
+router.post(
+  "/update-coolly/:id",
+  (req, res, next) => {
+    req.uploadFolder = "coolly";
+    next();
+  },
+  upload.single("image"),
+  async (req, res) => {
+    try {
+      // 🔐 Auth check
+      if (!req.session || !req.session.username) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const update_id = req.params.id; // ✅ USE PARAM, NOT BODY
+      if (!update_id) {
+        return res.status(400).json({ error: "Missing booking ID" });
+      }
+
+      // ✅ Parse tables safely
+      let tables = [];
+      if (req.body.tables) {
+        try {
+          tables = JSON.parse(req.body.tables);
+        } catch (e) {
+          return res.status(400).json({ error: "Invalid tables data" });
+        }
+      }
+
+      const updatedData = {
+        name: req.body.name,
+        phone: req.body.phone,
+        bookingDateTime: new Date(req.body.bookingDateTime),
+        amount: Number(req.body.amount),
+        transfer: Number(req.body.transfer),
+        remark: req.body.remark,
+        createBy: req.session.username,
+        tables
+      };
+
+      // ✅ Only overwrite image if new one uploaded
+      if (req.file) {
+        updatedData.image = `/uploads/coolly/${req.file.filename}`;
+      }
+
+      const updated = await reservationCoolly.findByIdAndUpdate(
+        update_id,
+        updatedData,
+        { new: true }
+      );
+
+      if (!updated) {
+        return res.status(404).json({ error: "Reservation not found" });
+      }
+
+      res.json({ success: true, data: updated });
+
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+//----------------------------------- END COOLLY CHEF SECTION --------------------------//
+
+// Only Admin can see 'Add-Member' button on the dashboard page
+router.get("/add-member", async (req, res) => {
+  if (req.session.login) {
+    res.render("add-member", { 
+    error: null, 
+    success: null,
+    username: req.session.username,
+    isAdmin: req.session.isAdmin,
+    isLogin: req.session.login
+   });
+  } else {
+    res.render('login');
+  }
+  
+});
+
+// HANDLE MEMBER CREATION
+router.post("/add-member", async (req, res) => {
+  const { username, email, password } = req.body;
+
+  try {
+    // Check for duplicate username/email
+    const existing = await memberTable.findOne({ 
+      $or: [{ username }, { email }] 
+    });
+
+    if (existing) {
+      return res.render("add-member", { 
+        error: "Username or Email already exists.",
+        success: null
+      });
+    }
+
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Create new member
+    await memberTable.create({
+      username,
+      email,
+      passwordHash
+    });
+
+    return res.render("add-member", { 
+      success: "Member created successfully!",
+      error: null,
+      username: req.session.username,
+      isAdmin: req.session.isAdmin,
+      isLogin: req.session.login
+    });
+
+  } catch (err) {
+    console.error(err);
+    return res.render("add-member", { 
+      error: "Something went wrong",
+      success: null,
+      username: req.session.username,
+      isAdmin: req.session.isAdmin,
+      isLogin: req.session.login
+    });
+  }
+});
+
+
+router.post("/create-admin", async (req, res) => {
+  // Check for Authorization header
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Basic ')) {
+    res.set('WWW-Authenticate', 'Basic realm="User Visible Realm"');
+    return res.status(401).send('Authentication required.');
+  }
+
+  // Decode base64 credentials
+  const base64Credentials = authHeader.split(' ')[1];
+  const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
+  const [username, password] = credentials.split(':');
+
+  // Verify credentials
+  if (username !== BASIC_AUTH_USER || password !== BASIC_AUTH_PASS) {
+    return res.status(403).send('Forbidden: Invalid credentials');
+  }
+
+  // Proceed with your existing handler logic
+  const { username: newUser, email, password: newPassword } = req.body;
+
+  try {
+    const existing = await memberTable.findOne({
+      $or: [{ username: newUser }, { email }]
+    });
+
+    if (existing) {
+      return res.render("create-admin", {
+        error: "Username or Email already exists.",
+        success: null
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    await memberTable.create({
+      username: newUser,
+      email,
+      passwordHash
+    });
+
+    return res.render("create-admin", {
+      success: "Member created successfully!",
+      error: null
+    });
+  } catch (err) {
+    console.error(err);
+    return res.render("create-admin", {
+      error: "Something went wrong",
+      success: null
+    });
+  }
+});
+
+router.get('/logout',(req,res)=>{
+    req.session.destroy((err)=>{
+        res.redirect('/login')
+    })
+})
+
+// ======== Manage Members ============
+router.get("/members", async (req, res) => {
+  try {
+    const members = await memberTable.find().sort({ createdAt: -1 });
+
+    res.render("members", {
+      members,
+      username: req.session.username,
+      isAdmin: req.session.isAdmin,
+      isLogin: req.session.login
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error loading members");
+  }
+});
+
+router.get("/delete-member/:id", async (req, res) => {
+  try {
+    await memberTable.findByIdAndDelete(req.params.id);
+    res.redirect("/members");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error deleting member");
+  }
+});
+
+router.get("/edit-member/:id", async (req, res) => {
+  try {
+    const member = await memberTable.findById(req.params.id);
+    res.render("edit-member", { member });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error editing member");
+  }
+});
+
+router.post("/edit-member/:id", async (req, res) => {
+  const { username, email } = req.body;
+
+  try {
+    await memberTable.findByIdAndUpdate(req.params.id, {
+      username,
+      email
+    });
+
+    res.redirect("/members");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error updating member");
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
 
 module.exports = router     //export module router ไปให้ index ใช้
 
