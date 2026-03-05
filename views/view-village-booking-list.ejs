@@ -402,14 +402,7 @@
           >
         </div>
 
-        <div style="text-align: right; margin-top: 15px;">
-          <a
-            href="/view-village-export-csv?<%= new URLSearchParams({ date: selectedDate }) %>"
-            class="export-btn"
-          >
-            Export CSV
-          </a>
-        </div>
+        
       </form>
 
       
@@ -525,6 +518,27 @@
                 <a href="?page=<%= currentPage + 1 %>&limit=<%= limit %>&sort=<%= sort %>&filter=<%= filter %>">Next</a>
               <% } %>
             </div>
+
+            <form style="margin-top: 15px;" class="filter-bar" action="/view-village-export-csv" method="GET" class="export-form">
+  
+              <div class="filter-item">
+                <label>เลือกวันที่:</label>
+                <input 
+                  type="date" 
+                  name="date" 
+                  class="form-control"
+                  required
+                >
+
+              </div>
+
+              <div style="text-align: right; margin-top: 22px;">
+                <button type="submit" class="btn btn-success">
+                    Export CSV
+                </button>
+              </div>
+              
+            </form>
 
     </div>
   </section>

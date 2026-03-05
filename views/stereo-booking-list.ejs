@@ -401,21 +401,18 @@
           >
         </div>
 
-        <div style="text-align: right; margin-top: 15px;">
+        <!-- <div style="text-align: right; margin-top: 15px;">
           <a
             href="/stereo-export-csv?<%= new URLSearchParams({ date: selectedDate }) %>"
             class="export-btn"
           >
             Export CSV
           </a>
-        </div>
+        </div> -->
+
+        
       </form>
 
-      
-
-      
-
-      
 
       <!-- <div class="table-responsive-custom"> -->
             <table class="responsive-table">
@@ -521,6 +518,28 @@
                 <a href="?page=<%= currentPage + 1 %>&limit=<%= limit %>&sort=<%= sort %>&filter=<%= filter %>">Next</a>
               <% } %>
             </div>
+
+
+            <form style="margin-top: 15px;" class="filter-bar" action="/stereo-export-csv" method="GET" class="export-form">
+  
+              <div class="filter-item">
+                <label>เลือกวันที่:</label>
+                <input 
+                  type="date" 
+                  name="date" 
+                  class="form-control"
+                  required
+                >
+
+              </div>
+
+              <div style="text-align: right; margin-top: 22px;">
+                <button type="submit" class="btn btn-success">
+                    Export CSV
+                </button>
+              </div>
+              
+            </form>
 
     </div>
   </section>

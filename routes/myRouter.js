@@ -450,24 +450,51 @@ router.get("/view-village-dashboard", async (req, res) => {
 // ====================================
 router.get("/view-village-export-csv", async (req, res) => {
   try {
-    const bookings = await reservationViewVillage.find().sort({ bookingDateTime: 1 });
 
-    let csv = "Name,Phone,Table,Amount,Reservation Date,Note,Status,Created At\n";
-    // name, phone, amount, remark, bookingDateTime, tables
+    const { date } = req.query;
+
+    if (!date) {
+      return res.status(400).send("Date is required");
+    }
+
+    // Create start and end of selected day
+    const start = new Date(date);
+    start.setHours(0,0,0,0);
+
+    const end = new Date(date);
+    end.setHours(23,59,59,999);
+
+    const bookings = await reservationViewVillage.find({
+      bookingDateTime: { $gte: start, $lte: end }
+    }).sort({ bookingDateTime: 1 });
+
+    let csv = "Name,Phone,Table,Amount,Reservation Date,Note,Status,Created By,Created At\n";
 
     bookings.forEach(b => {
-      const reservationDate = format(new Date(b.bookingDateTime), 
-        "dd MMMM yyyy HH:mm", { locale: th });
 
-      const createdAt = format(new Date(b.createdAt), 
-        "dd MMMM yyyy HH:mm", { locale: th });
+      const reservationDate = format(
+        new Date(b.bookingDateTime),
+        "dd MMMM yyyy HH:mm",
+        { locale: th }
+      );
 
-      csv += `"${b.name}","${b.phone}","${b.tables}","${b.amount}","${reservationDate}","${b.remark || ""}","${b.status}","${createdAt}"\n`;
+      const createdAt = format(
+        new Date(b.createdAt),
+        "dd MMMM yyyy HH:mm",
+        { locale: th }
+      );
+
+      csv += `"${b.name}","${b.phone}","${b.tables}","${b.amount}","${reservationDate}","${b.remark || ""}","${b.status}","${b.createBy}","${createdAt}"\n`;
+
     });
 
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader("Content-Disposition", "attachment; filename=view-village-bookings.csv");
-    res.send("\uFEFF" + csv);   // BOM for Excel Thai support
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=view-village-${date}.csv`
+    );
+
+    res.send("\uFEFF" + csv);
 
   } catch (err) {
     console.error("CSV Export Error:", err);
@@ -1018,24 +1045,51 @@ router.get("/viewbar-dashboard", async (req, res) => {
 // ====================================
 router.get("/viewbar-export-csv", async (req, res) => {
   try {
-    const bookings = await Reservation.find().sort({ bookingDateTime: 1 });
 
-    let csv = "Name,Phone,Table,Amount,Reservation Date,Note,Status,Created At\n";
-    // name, phone, amount, remark, bookingDateTime, tables
+    const { date } = req.query;
+
+    if (!date) {
+      return res.status(400).send("Date is required");
+    }
+
+    // Create start and end of selected day
+    const start = new Date(date);
+    start.setHours(0,0,0,0);
+
+    const end = new Date(date);
+    end.setHours(23,59,59,999);
+
+    const bookings = await Reservation.find({
+      bookingDateTime: { $gte: start, $lte: end }
+    }).sort({ bookingDateTime: 1 });
+
+    let csv = "Name,Phone,Table,Amount,Reservation Date,Note,Status,Created By,Created At\n";
 
     bookings.forEach(b => {
-      const reservationDate = format(new Date(b.bookingDateTime), 
-        "dd MMMM yyyy HH:mm", { locale: th });
 
-      const createdAt = format(new Date(b.createdAt), 
-        "dd MMMM yyyy HH:mm", { locale: th });
+      const reservationDate = format(
+        new Date(b.bookingDateTime),
+        "dd MMMM yyyy HH:mm",
+        { locale: th }
+      );
 
-      csv += `"${b.name}","${b.phone}","${b.tables}","${b.amount}","${reservationDate}","${b.remark || ""}","${b.status}","${createdAt}"\n`;
+      const createdAt = format(
+        new Date(b.createdAt),
+        "dd MMMM yyyy HH:mm",
+        { locale: th }
+      );
+
+      csv += `"${b.name}","${b.phone}","${b.tables}","${b.amount}","${reservationDate}","${b.remark || ""}","${b.status}","${b.createBy}","${createdAt}"\n`;
+
     });
 
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader("Content-Disposition", "attachment; filename=view-bar-bookings.csv");
-    res.send("\uFEFF" + csv);   // BOM for Excel Thai support
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=view-bar-${date}.csv`
+    );
+
+    res.send("\uFEFF" + csv);
 
   } catch (err) {
     console.error("CSV Export Error:", err);
@@ -1400,24 +1454,51 @@ router.get("/stereo-dashboard", async (req, res) => {
 // ====================================
 router.get("/stereo-export-csv", async (req, res) => {
   try {
-    const bookings = await reservationStereo.find().sort({ bookingDateTime: 1 });
 
-    let csv = "Name,Phone,Table,Amount,Reservation Date,Note,Status,Created At\n";
-    // name, phone, amount, remark, bookingDateTime, tables
+    const { date } = req.query;
+
+    if (!date) {
+      return res.status(400).send("Date is required");
+    }
+
+    // Create start and end of selected day
+    const start = new Date(date);
+    start.setHours(0,0,0,0);
+
+    const end = new Date(date);
+    end.setHours(23,59,59,999);
+
+    const bookings = await reservationStereo.find({
+      bookingDateTime: { $gte: start, $lte: end }
+    }).sort({ bookingDateTime: 1 });
+
+    let csv = "Name,Phone,Table,Amount,Reservation Date,Note,Status,Created By,Created At\n";
 
     bookings.forEach(b => {
-      const reservationDate = format(new Date(b.bookingDateTime), 
-        "dd MMMM yyyy HH:mm", { locale: th });
 
-      const createdAt = format(new Date(b.createdAt), 
-        "dd MMMM yyyy HH:mm", { locale: th });
+      const reservationDate = format(
+        new Date(b.bookingDateTime),
+        "dd MMMM yyyy HH:mm",
+        { locale: th }
+      );
 
-      csv += `"${b.name}","${b.phone}","${b.tables}","${b.amount}","${reservationDate}","${b.remark || ""}","${b.status}","${createdAt}"\n`;
+      const createdAt = format(
+        new Date(b.createdAt),
+        "dd MMMM yyyy HH:mm",
+        { locale: th }
+      );
+
+      csv += `"${b.name}","${b.phone}","${b.tables}","${b.amount}","${reservationDate}","${b.remark || ""}","${b.status}","${b.createBy}","${createdAt}"\n`;
+
     });
 
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader("Content-Disposition", "attachment; filename=stereo-bar-bookings.csv");
-    res.send("\uFEFF" + csv);   // BOM for Excel Thai support
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=stereo-bar-${date}.csv`
+    );
+
+    res.send("\uFEFF" + csv);
 
   } catch (err) {
     console.error("CSV Export Error:", err);
@@ -1879,24 +1960,51 @@ router.get("/coolly-dashboard", async (req, res) => {
 // ====================================
 router.get("/coolly-export-csv", async (req, res) => {
   try {
-    const bookings = await reservationCoolly.find().sort({ bookingDateTime: 1 });
 
-    let csv = "Name,Phone,Table,Amount,Reservation Date,Note,Status,Created At\n";
-    // name, phone, amount, remark, bookingDateTime, tables
+    const { date } = req.query;
+
+    if (!date) {
+      return res.status(400).send("Date is required");
+    }
+
+    // Create start and end of selected day
+    const start = new Date(date);
+    start.setHours(0,0,0,0);
+
+    const end = new Date(date);
+    end.setHours(23,59,59,999);
+
+    const bookings = await reservationCoolly.find({
+      bookingDateTime: { $gte: start, $lte: end }
+    }).sort({ bookingDateTime: 1 });
+
+    let csv = "Name,Phone,Table,Amount,Reservation Date,Note,Status,Created By,Created At\n";
 
     bookings.forEach(b => {
-      const reservationDate = format(new Date(b.bookingDateTime), 
-        "dd MMMM yyyy HH:mm", { locale: th });
 
-      const createdAt = format(new Date(b.createdAt), 
-        "dd MMMM yyyy HH:mm", { locale: th });
+      const reservationDate = format(
+        new Date(b.bookingDateTime),
+        "dd MMMM yyyy HH:mm",
+        { locale: th }
+      );
 
-      csv += `"${b.name}","${b.phone}","${b.tables}","${b.amount}","${reservationDate}","${b.remark || ""}","${b.status}","${createdAt}"\n`;
+      const createdAt = format(
+        new Date(b.createdAt),
+        "dd MMMM yyyy HH:mm",
+        { locale: th }
+      );
+
+      csv += `"${b.name}","${b.phone}","${b.tables}","${b.amount}","${reservationDate}","${b.remark || ""}","${b.status}","${b.createBy}","${createdAt}"\n`;
+
     });
 
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader("Content-Disposition", "attachment; filename=coolly-chef-bookings.csv");
-    res.send("\uFEFF" + csv);   // BOM for Excel Thai support
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=coolly-chef-${date}.csv`
+    );
+
+    res.send("\uFEFF" + csv);
 
   } catch (err) {
     console.error("CSV Export Error:", err);
