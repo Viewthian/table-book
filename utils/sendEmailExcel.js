@@ -1,6 +1,6 @@
 const nodemailer = require("nodemailer");
 
-async function sendEmailWithAttachment(csvData) {
+async function sendEmailWithAttachment(date, attachments) {
 
   const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -14,16 +14,11 @@ async function sendEmailWithAttachment(csvData) {
     from: process.env.EMAIL_USER,
     to: "nathakrit.p@gmail.com",
     subject: `Daily Reservation Report - ${date}`,
-    text: `Attached is today's ${date} reservation report.`,
-    attachments: [
-      {
-        filename: `stereo-bar-daily-bookings-${date}.csv`,
-        content: steroExcel
-      }
-    ]
+    text: `Reservation report for ${date}.`,
+    attachments: attachments
   });
 
-  console.log("📧 Email sent successfully");
 }
+
 
 module.exports = sendEmailWithAttachment;
