@@ -468,7 +468,7 @@ router.get("/view-village-export-csv", async (req, res) => {
       bookingDateTime: { $gte: start, $lte: end }
     }).sort({ bookingDateTime: 1 });
 
-    let csv = "Name,Phone,Table,Amount,Reservation Date,Note,Status,Created By,Created At\n";
+    let csv = "ชื่อลูกค้า,เบอร์โทร,เลขโต๊ะ,จำนวน,วันที่จอง,รายละเอียด,สถานะการจอง,มัดจำโต๊ะ,ผู้จอง,จองเมื่อ\n";
 
     bookings.forEach(b => {
 
@@ -484,7 +484,7 @@ router.get("/view-village-export-csv", async (req, res) => {
         { locale: th }
       );
 
-      csv += `"${b.name}","${b.phone}","${b.tables}","${b.amount}","${reservationDate}","${b.remark || ""}","${b.status}","${b.createBy}","${createdAt}"\n`;
+      csv += `"${b.name}","${b.phone}","${b.tables}","${b.amount}","${reservationDate}","${b.remark || ""}","${b.status}","${b.transfer}","${b.createBy}","${createdAt}"\n`;
 
     });
 
@@ -1063,7 +1063,7 @@ router.get("/viewbar-export-csv", async (req, res) => {
       bookingDateTime: { $gte: start, $lte: end }
     }).sort({ bookingDateTime: 1 });
 
-    let csv = "Name,Phone,Table,Amount,Reservation Date,Note,Status,Created By,Created At\n";
+    let csv = "ชื่อลูกค้า,เบอร์โทร,เลขโต๊ะ,จำนวน,วันที่จอง,รายละเอียด,สถานะการจอง,มัดจำโต๊ะ,ผู้จอง,จองเมื่อ\n";
 
     bookings.forEach(b => {
 
@@ -1079,7 +1079,7 @@ router.get("/viewbar-export-csv", async (req, res) => {
         { locale: th }
       );
 
-      csv += `"${b.name}","${b.phone}","${b.tables}","${b.amount}","${reservationDate}","${b.remark || ""}","${b.status}","${b.createBy}","${createdAt}"\n`;
+      csv += `"${b.name}","${b.phone}","${b.tables}","${b.amount}","${reservationDate}","${b.remark || ""}","${b.status}","${b.transfer}","${b.createBy}","${createdAt}"\n`;
 
     });
 
@@ -1472,7 +1472,7 @@ router.get("/stereo-export-csv", async (req, res) => {
       bookingDateTime: { $gte: start, $lte: end }
     }).sort({ bookingDateTime: 1 });
 
-    let csv = "Name,Phone,Table,Amount,Reservation Date,Note,Status,Created By,Created At\n";
+    let csv = "ชื่อลูกค้า,เบอร์โทร,เลขโต๊ะ,จำนวน,วันที่จอง,รายละเอียด,สถานะการจอง,มัดจำโต๊ะ,ผู้จอง,จองเมื่อ\n";
 
     bookings.forEach(b => {
 
@@ -1488,7 +1488,7 @@ router.get("/stereo-export-csv", async (req, res) => {
         { locale: th }
       );
 
-      csv += `"${b.name}","${b.phone}","${b.tables}","${b.amount}","${reservationDate}","${b.remark || ""}","${b.status}","${b.createBy}","${createdAt}"\n`;
+      csv += `"${b.name}","${b.phone}","${b.tables}","${b.amount}","${reservationDate}","${b.remark || ""}","${b.status}","${b.transfer}","${b.createBy}","${createdAt}"\n`;
 
     });
 
@@ -1978,7 +1978,7 @@ router.get("/coolly-export-csv", async (req, res) => {
       bookingDateTime: { $gte: start, $lte: end }
     }).sort({ bookingDateTime: 1 });
 
-    let csv = "Name,Phone,Table,Amount,Reservation Date,Note,Status,Created By,Created At\n";
+    let csv = "ชื่อลูกค้า,เบอร์โทร,เลขโต๊ะ,จำนวน,วันที่จอง,รายละเอียด,สถานะการจอง,มัดจำโต๊ะ,ผู้จอง,จองเมื่อ\n";
 
     bookings.forEach(b => {
 
@@ -1994,7 +1994,7 @@ router.get("/coolly-export-csv", async (req, res) => {
         { locale: th }
       );
 
-      csv += `"${b.name}","${b.phone}","${b.tables}","${b.amount}","${reservationDate}","${b.remark || ""}","${b.status}","${b.createBy}","${createdAt}"\n`;
+      csv += `"${b.name}","${b.phone}","${b.tables}","${b.amount}","${reservationDate}","${b.remark || ""}","${b.status}","${b.transfer}","${b.createBy}","${createdAt}"\n`;
 
     });
 
