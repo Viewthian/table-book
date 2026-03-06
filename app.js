@@ -9,6 +9,7 @@ const flash = require("connect-flash-plus");
 const session = require('express-session')
 const app = express()
 const PORT = process.env.PORT || 3000;
+require("./scheduler/dailyReport");
 
 
 
@@ -35,12 +36,14 @@ app.use((req, res, next) => {
   res.locals.messages = req.flash();
   next();
 });
-app.use(router)             //ใช้ router มาช่วยในเรื่องการจัดการ dynamic file&content
 
 app.use(express.static(path.join(__dirname, 'public')))    //ไป render ที่ static file
 
 // Use it (this means all routes inside myRouter.js will work)
 app.use('/', router);
+
+// start scheduler
+require("./scheduler/dailyReport");
 
 app.use((req, res) => {
   res.status(404).render('404'); // renders 404.ejs
