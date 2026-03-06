@@ -3,7 +3,7 @@ const reservationStereo = require("../models/stereo-reservation.js");
 const generateCSV = require("../utils/exportCSV");
 const sendEmailWithAttachment = require("../utils/sendEmail");
 
-cron.schedule("55 12 * * *", async () => {
+cron.schedule("50 13 * * *", async () => {
   try {
 
     console.log("⏰ Running daily report...");
