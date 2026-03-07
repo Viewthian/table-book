@@ -15,7 +15,19 @@ const {
 // const sendEmailWithAttachment = require("../utils/sendEmail");
 const sendEmailWithAttachment = require("../utils/sendEmailExcel");
 
-cron.schedule("55 12 * * *", async () => {
+console.log("📅 Scheduler loaded");
+
+// cron.schedule(
+//   "05 23 * * *",
+//   async () => {
+//     console.log("⏰ Running daily report...");
+//   },
+//   {
+//     timezone: "Asia/Bangkok"
+//   }
+// );
+
+cron.schedule("10 13 * * *", async () => {
   try {
 
     console.log("⏰ Running daily report...");
@@ -111,4 +123,7 @@ cron.schedule("55 12 * * *", async () => {
   } catch (err) {
     console.error("❌ Daily report error:", err);
   }
-});
+},
+  {
+    timezone: "Asia/Bangkok"
+  });
