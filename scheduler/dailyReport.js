@@ -17,7 +17,7 @@ const sendEmailWithAttachment = require("../utils/sendEmailExcel");
 console.log("📅 Scheduler loaded");
 
 cron.schedule(
-  "16 10 * * *",
+  "30 10 * * *",
   async () => {
     try {
       console.log("⏰ Running daily report...");

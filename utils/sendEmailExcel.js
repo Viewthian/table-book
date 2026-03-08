@@ -6,8 +6,7 @@ async function sendEmailWithAttachment(date, attachments) {
         host: "smtp.gmail.com",
         port: 587,
         secure: false,
-        logger: true,
-        debug: true,
+        requireTLS: true,
         auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASS
