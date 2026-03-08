@@ -1,9 +1,9 @@
 const cron = require("node-cron");
 
-const reservationStereo = require("../models/stereo-reservation.js");
-const reservationCoolly = require("../models/coolly-reservation.js");
-const reservationViewVillage = require("../models/view-village-reservation.js");
-const Reservation = require("../models/viewbar-reservation.js");
+const StereoReservation = require("../models/stereo-reservation.js");
+const CoollyReservation = require("../models/coolly-reservation.js");
+const ViewVillageReservation = require("../models/view-village-reservation.js");
+const ViewbarReservation = require("../models/viewbar-reservation.js");
 
 const {
   generateStereoExcel,
@@ -12,118 +12,121 @@ const {
   generateTheviewExcel
 } = require("../utils/exportExcel");
 
-// const sendEmailWithAttachment = require("../utils/sendEmail");
 const sendEmailWithAttachment = require("../utils/sendEmailExcel");
 
 console.log("📅 Scheduler loaded");
 
-// cron.schedule(
-//   "05 23 * * *",
-//   async () => {
-//     console.log("⏰ Running daily report...");
-//   },
-//   {
-//     timezone: "Asia/Bangkok"
-//   }
-// );
+cron.schedule(
+  "04 10 * * *",
+  async () => {
+    try {
+      console.log("⏰ Running daily report...");
 
-cron.schedule("42 09 * * *", async () => {
-  try {
+      const today = new Date();
 
-    console.log("⏰ Running daily report...");
+      const start = new Date(today);
+      start.setHours(0, 0, 0, 0);
 
-    const today = new Date();
+      const end = new Date(today);
+      end.setHours(23, 59, 59, 999);
 
-    // Start & end of day
-    const start = new Date(today);
-    start.setHours(0, 0, 0, 0);
+      const todayStr = today.toISOString().slice(0, 10);
 
-    const end = new Date(today);
-    end.setHours(23, 59, 59, 999);
+      console.log(`📆 Report date: ${todayStr}`);
 
-    // Fetch bookings
-    const stereoBookings = await reservationStereo.find({
-      bookingDateTime: { $gte: start, $lte: end }
-    });
+      const attachments = [];
 
-    const coollyBookings = await reservationCoolly.find({
-      bookingDateTime: { $gte: start, $lte: end }
-    });
+      // ---------- FETCH BOOKINGS ----------
 
-    const viewbarBookings = await Reservation.find({
-      bookingDateTime: { $gte: start, $lte: end }
-    });
-
-    const theviewBookings = await reservationViewVillage.find({
-      bookingDateTime: { $gte: start, $lte: end }
-    });
-
-    const attachments = [];
-
-    const todayStr = today.toISOString().slice(0, 10);
-
-    // Stereo
-    if (stereoBookings && stereoBookings.length > 0) {
-      const excelBuffer = generateStereoExcel(stereoBookings);
-
-      attachments.push({
-        filename: `stereo-bookings-${todayStr}.xlsx`,
-        content: excelBuffer
+      const stereoBookings = await StereoReservation.find({
+        bookingDateTime: { $gte: start, $lte: end }
       });
 
-      console.log(`📊 Stereo bookings: ${stereoBookings.length}`);
-    }
-
-    // Coolly
-    if (coollyBookings && coollyBookings.length > 0) {
-      const excelBuffer = generateCoollyExcel(coollyBookings);
-
-      attachments.push({
-        filename: `coolly-bookings-${todayStr}.xlsx`,
-        content: excelBuffer
+      const coollyBookings = await CoollyReservation.find({
+        bookingDateTime: { $gte: start, $lte: end }
       });
 
-      console.log(`📊 Coolly bookings: ${coollyBookings.length}`);
-    }
-
-    // Viewbar
-    if (viewbarBookings && viewbarBookings.length > 0) {
-      const excelBuffer = generateViewbarExcel(viewbarBookings);
-
-      attachments.push({
-        filename: `viewbar-bookings-${todayStr}.xlsx`,
-        content: excelBuffer
+      const viewbarBookings = await ViewbarReservation.find({
+        bookingDateTime: { $gte: start, $lte: end }
       });
 
-      console.log(`📊 Viewbar bookings: ${viewbarBookings.length}`);
-    }
-
-    // The View
-    if (theviewBookings && theviewBookings.length > 0) {
-      const excelBuffer = generateTheviewExcel(theviewBookings);
-
-      attachments.push({
-        filename: `theview-bookings-${todayStr}.xlsx`,
-        content: excelBuffer
+      const theviewBookings = await ViewVillageReservation.find({
+        bookingDateTime: { $gte: start, $lte: end }
       });
 
-      console.log(`📊 TheView bookings: ${theviewBookings.length}`);
+      // ---------- GENERATE FILES ----------
+
+      if (stereoBookings?.length) {
+        const buffer = Buffer.from(generateStereoExcel(stereoBookings));
+
+        attachments.push({
+          filename: `stereo-bookings-${todayStr}.xlsx`,
+          content: buffer
+        });
+
+        console.log(`📊 Stereo bookings: ${stereoBookings.length}`);
+      }
+
+      if (coollyBookings?.length) {
+        const buffer = Buffer.from(generateCoollyExcel(coollyBookings));
+
+        attachments.push({
+          filename: `coolly-bookings-${todayStr}.xlsx`,
+          content: buffer
+        });
+
+        console.log(`📊 Coolly bookings: ${coollyBookings.length}`);
+      }
+
+      if (viewbarBookings?.length) {
+        const buffer = Buffer.from(generateViewbarExcel(viewbarBookings));
+
+        attachments.push({
+          filename: `viewbar-bookings-${todayStr}.xlsx`,
+          content: buffer
+        });
+
+        console.log(`📊 Viewbar bookings: ${viewbarBookings.length}`);
+      }
+
+      if (theviewBookings?.length) {
+        const buffer = Buffer.from(generateTheviewExcel(theviewBookings));
+
+        attachments.push({
+          filename: `theview-bookings-${todayStr}.xlsx`,
+          content: buffer
+        });
+
+        console.log(`📊 TheView bookings: ${theviewBookings.length}`);
+      }
+
+      // ---------- NO BOOKINGS ----------
+
+      if (!attachments.length) {
+        console.log("📭 No bookings today. Email skipped.");
+        return;
+      }
+
+      console.log(`📦 Sending ${attachments.length} attachment(s)...`);
+
+      // ---------- SEND EMAIL ----------
+
+      console.log(
+        attachments.map(a => ({
+            name: a.filename,
+            size: a.content.length
+        }))
+        );
+
+      await sendEmailWithAttachment(todayStr, attachments);
+
+      console.log("✅ Daily report email sent");
+
+    } catch (err) {
+      console.error("❌ Daily report error:", err);
     }
-
-    // If no bookings → skip email
-    if (attachments.length === 0) {
-      console.log("📭 No bookings today. Email skipped.");
-      return;
-    }
-
-    await sendEmailWithAttachment(todayStr, attachments);
-
-    console.log(`📧 Report sent with ${attachments.length} file(s)`);
-
-  } catch (err) {
-    console.error("❌ Daily report error:", err);
-  }
-},
+  },
   {
     timezone: "Asia/Bangkok"
-  });
+  }
+);

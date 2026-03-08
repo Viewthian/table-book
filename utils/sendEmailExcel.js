@@ -1,38 +1,37 @@
 const nodemailer = require("nodemailer");
 
 async function sendEmailWithAttachment(date, attachments) {
-
-  const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 10000,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
-
   try {
+    const transporter = nodemailer.createTransport({
+      service: "gmail", // simpler config
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      },
+      connectionTimeout: 20000,
+      greetingTimeout: 20000,
+      socketTimeout: 20000
+    });
+
+    // verify smtp connection
     await transporter.verify();
-    console.log("SMTP ready");
-    } catch (err) {
-    console.error("SMTP error:", err);
-    }
+    console.log("✅ SMTP connection ready");
 
-  await new Promise(resolve => setTimeout(resolve, 5000));
-  
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
-    to: "nathakrit.p@gmail.com",
-    subject: `Daily Reservation Report - ${date}`,
-    text: `Reservation report for ${date}.`,
-    attachments: attachments
-  });
+    // send email
+    const info = await transporter.sendMail({
+      from: `"Reservation System" <${process.env.EMAIL_USER}>`,
+      to: "nathakrit.p@gmail.com",
+      subject: `Daily Reservation Report - ${date}`,
+      text: `Reservation report for ${date}.`,
+      attachments: attachments
+    });
 
+    console.log("📧 Email sent:", info.messageId);
+
+  } catch (error) {
+    console.error("❌ Email sending failed:", error);
+    throw error;
+  }
 }
-
 
 module.exports = sendEmailWithAttachment;
