@@ -27,7 +27,7 @@ console.log("📅 Scheduler loaded");
 //   }
 // );
 
-cron.schedule("30 09 * * *", async () => {
+cron.schedule("42 09 * * *", async () => {
   try {
 
     console.log("⏰ Running daily report...");
