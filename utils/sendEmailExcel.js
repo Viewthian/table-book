@@ -3,11 +3,15 @@ const nodemailer = require("nodemailer");
 async function sendEmailWithAttachment(date, attachments) {
   try {
     const transporter = nodemailer.createTransport({
-      service: "gmail", // simpler config
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      },
+        host: "smtp.gmail.com",
+        port: 587,
+        secure: false,
+        logger: true,
+        debug: true,
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
+        },
       connectionTimeout: 20000,
       greetingTimeout: 20000,
       socketTimeout: 20000
