@@ -12,12 +12,12 @@ const {
   generateTheviewExcel
 } = require("../utils/exportExcel");
 
-const sendEmailWithAttachment = require("../utils/sendEmailExcel");
+const sendEmailWithAttachment = require("../utils/sendEmailResend");
 
 console.log("📅 Scheduler loaded");
 
 cron.schedule(
-  "30 10 * * *",
+  "53 10 * * *",
   async () => {
     try {
       console.log("⏰ Running daily report...");
