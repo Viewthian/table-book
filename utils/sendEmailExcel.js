@@ -1,40 +1,45 @@
 const nodemailer = require("nodemailer");
+const { google } = require("googleapis");
+
+const CLIENT_ID = process.env.GMAIL_CLIENT_ID;
+const CLIENT_SECRET = process.env.GMAIL_CLIENT_SECRET;
+const REFRESH_TOKEN = process.env.GMAIL_REFRESH_TOKEN;
+
+const oauth2Client = new google.auth.OAuth2(
+  CLIENT_ID,
+  CLIENT_SECRET,
+  "https://developers.google.com/oauthplayground"
+);
+
+oauth2Client.setCredentials({
+  refresh_token: REFRESH_TOKEN
+});
 
 async function sendEmailWithAttachment(date, attachments) {
-  try {
-    const transporter = nodemailer.createTransport({
-        host: "smtp.gmail.com",
-        port: 587,
-        secure: false,
-        requireTLS: true,
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS
-        },
-      connectionTimeout: 20000,
-      greetingTimeout: 20000,
-      socketTimeout: 20000
-    });
 
-    // verify smtp connection
-    await transporter.verify();
-    console.log("✅ SMTP connection ready");
+  const accessToken = await oauth2Client.getAccessToken();
 
-    // send email
-    const info = await transporter.sendMail({
-      from: `"Reservation System" <${process.env.EMAIL_USER}>`,
-      to: "nathakrit.p@gmail.com",
-      subject: `Daily Reservation Report - ${date}`,
-      text: `Reservation report for ${date}.`,
-      attachments: attachments
-    });
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      type: "OAuth2",
+      user: "theview.reservation@gmail.com",
+      clientId: CLIENT_ID,
+      clientSecret: CLIENT_SECRET,
+      refreshToken: REFRESH_TOKEN,
+      accessToken: accessToken.token
+    }
+  });
 
-    console.log("📧 Email sent:", info.messageId);
+  await transporter.sendMail({
+    from: "Reservation System <theview.reservation@gmail.com>",
+    to: "nathakrit.p@gmail.com",
+    subject: `Daily Reservation Report - ${date}`,
+    text: `Reservation report for ${date}.`,
+    attachments: attachments
+  });
 
-  } catch (error) {
-    console.error("❌ Email sending failed:", error);
-    throw error;
-  }
+  console.log("✅ Email sent via Gmail API");
 }
 
 module.exports = sendEmailWithAttachment;
