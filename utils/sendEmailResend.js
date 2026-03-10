@@ -12,7 +12,7 @@ async function sendEmailWithAttachment(date, attachments) {
 
     const response = await resend.emails.send({
       from: "Reservation System <onboarding@resend.dev>",
-      to: ["nathakrit.p@gmail.com"],
+      to: ["theview.reservation@gmail.com"],
       subject: `Daily Reservation Report - ${date}`,
       text: `Reservation report for ${date}.`,
       attachments: formattedAttachments

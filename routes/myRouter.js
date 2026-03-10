@@ -25,6 +25,7 @@ const stereoStaticElements = require("../public/js/stereo-floor-elements.js");
 const { error } = require('console')
 const checkTimeConflict  = require('../utils/check-availability');
 const requireAdmin = require('../utils/basic-auth');
+const XLSX = require("xlsx");
 const { format } = require("date-fns");
 const { th } = require("date-fns/locale");
 const { render } = require('ejs');
@@ -499,6 +500,91 @@ router.get("/view-village-export-csv", async (req, res) => {
   } catch (err) {
     console.error("CSV Export Error:", err);
     res.status(500).send("Error exporting CSV");
+  }
+});
+
+// ====================================
+// EXPORT EXCEL VIEW VILLAGE
+// ====================================
+
+
+router.get("/view-village-export-excel", async (req, res) => {
+  try {
+
+    const { date } = req.query;
+
+    if (!date) {
+      return res.status(400).send("Date is required");
+    }
+
+    // Start and end of day
+    const start = new Date(date);
+    start.setHours(0,0,0,0);
+
+    const end = new Date(date);
+    end.setHours(23,59,59,999);
+
+    const bookings = await reservationViewVillage.find({
+      bookingDateTime: { $gte: start, $lte: end }
+    }).sort({ bookingDateTime: 1 });
+
+    const data = bookings.map(b => {
+
+      const reservationDate = format(
+        new Date(b.bookingDateTime),
+        "dd MMMM yyyy HH:mm",
+        { locale: th }
+      );
+
+      const createdAt = format(
+        new Date(b.createdAt),
+        "dd MMMM yyyy HH:mm",
+        { locale: th }
+      );
+
+      return {
+        ชื่อลูกค้า: b.name,
+        เบอร์โทร: b.phone,
+        เลขโต๊ะ: Array.isArray(b.tables) ? b.tables.join(", ") : b.tables,
+        จำนวน: b.amount,
+        วันที่จอง: reservationDate,
+        รายละเอียด: b.remark || "",
+        สถานะการจอง: b.status,
+        มัดจำโต๊ะ: b.transfer,
+        ผู้จอง: b.createBy,
+        จองเมื่อ: createdAt
+      };
+
+    });
+
+    // Create worksheet
+    const worksheet = XLSX.utils.json_to_sheet(data);
+
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Reservations");
+
+    // Convert workbook to buffer
+    const buffer = XLSX.write(workbook, {
+      type: "buffer",
+      bookType: "xlsx"
+    });
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=view-village-${date}.xlsx`
+    );
+
+    res.send(buffer);
+
+  } catch (err) {
+    console.error("Excel Export Error:", err);
+    res.status(500).send("Error exporting Excel");
   }
 });
 
@@ -1097,6 +1183,89 @@ router.get("/viewbar-export-csv", async (req, res) => {
   }
 });
 
+// ====================================
+// EXPORT EXCEL VIEW BAR
+// ====================================
+router.get("/viewbar-export-excel", async (req, res) => {
+  try {
+
+    const { date } = req.query;
+
+    if (!date) {
+      return res.status(400).send("Date is required");
+    }
+
+    // Start and end of day
+    const start = new Date(date);
+    start.setHours(0,0,0,0);
+
+    const end = new Date(date);
+    end.setHours(23,59,59,999);
+
+    const bookings = await Reservation.find({
+      bookingDateTime: { $gte: start, $lte: end }
+    }).sort({ bookingDateTime: 1 });
+
+    const data = bookings.map(b => {
+
+      const reservationDate = format(
+        new Date(b.bookingDateTime),
+        "dd MMMM yyyy HH:mm",
+        { locale: th }
+      );
+
+      const createdAt = format(
+        new Date(b.createdAt),
+        "dd MMMM yyyy HH:mm",
+        { locale: th }
+      );
+
+      return {
+        ชื่อลูกค้า: b.name,
+        เบอร์โทร: b.phone,
+        เลขโต๊ะ: Array.isArray(b.tables) ? b.tables.join(", ") : b.tables,
+        จำนวน: b.amount,
+        วันที่จอง: reservationDate,
+        รายละเอียด: b.remark || "",
+        สถานะการจอง: b.status,
+        มัดจำโต๊ะ: b.transfer,
+        ผู้จอง: b.createBy,
+        จองเมื่อ: createdAt
+      };
+
+    });
+
+    // Create worksheet
+    const worksheet = XLSX.utils.json_to_sheet(data);
+
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Reservations");
+
+    // Convert workbook to buffer
+    const buffer = XLSX.write(workbook, {
+      type: "buffer",
+      bookType: "xlsx"
+    });
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=view-village-${date}.xlsx`
+    );
+
+    res.send(buffer);
+
+  } catch (err) {
+    console.error("Excel Export Error:", err);
+    res.status(500).send("Error exporting Excel");
+  }
+});
+
 //----------------------- END VIEW BAR ----------------------------------//
 
 //------------------ STEREO BAR SECTOIN ----------------------//
@@ -1503,6 +1672,89 @@ router.get("/stereo-export-csv", async (req, res) => {
   } catch (err) {
     console.error("CSV Export Error:", err);
     res.status(500).send("Error exporting CSV");
+  }
+});
+
+// ====================================
+// EXPORT EXCEL STEREO BAR
+// ====================================
+router.get("/stereo-export-excel", async (req, res) => {
+  try {
+
+    const { date } = req.query;
+
+    if (!date) {
+      return res.status(400).send("Date is required");
+    }
+
+    // Start and end of day
+    const start = new Date(date);
+    start.setHours(0,0,0,0);
+
+    const end = new Date(date);
+    end.setHours(23,59,59,999);
+
+    const bookings = await reservationStereo.find({
+      bookingDateTime: { $gte: start, $lte: end }
+    }).sort({ bookingDateTime: 1 });
+
+    const data = bookings.map(b => {
+
+      const reservationDate = format(
+        new Date(b.bookingDateTime),
+        "dd MMMM yyyy HH:mm",
+        { locale: th }
+      );
+
+      const createdAt = format(
+        new Date(b.createdAt),
+        "dd MMMM yyyy HH:mm",
+        { locale: th }
+      );
+
+      return {
+        ชื่อลูกค้า: b.name,
+        เบอร์โทร: b.phone,
+        เลขโต๊ะ: Array.isArray(b.tables) ? b.tables.join(", ") : b.tables,
+        จำนวน: b.amount,
+        วันที่จอง: reservationDate,
+        รายละเอียด: b.remark || "",
+        สถานะการจอง: b.status,
+        มัดจำโต๊ะ: b.transfer,
+        ผู้จอง: b.createBy,
+        จองเมื่อ: createdAt
+      };
+
+    });
+
+    // Create worksheet
+    const worksheet = XLSX.utils.json_to_sheet(data);
+
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Reservations");
+
+    // Convert workbook to buffer
+    const buffer = XLSX.write(workbook, {
+      type: "buffer",
+      bookType: "xlsx"
+    });
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=view-village-${date}.xlsx`
+    );
+
+    res.send(buffer);
+
+  } catch (err) {
+    console.error("Excel Export Error:", err);
+    res.status(500).send("Error exporting Excel");
   }
 });
 
@@ -2009,6 +2261,89 @@ router.get("/coolly-export-csv", async (req, res) => {
   } catch (err) {
     console.error("CSV Export Error:", err);
     res.status(500).send("Error exporting CSV");
+  }
+});
+
+// ====================================
+// EXPORT EXCEL COOLLY CHEF
+// ====================================
+router.get("/stereo-export-excel", async (req, res) => {
+  try {
+
+    const { date } = req.query;
+
+    if (!date) {
+      return res.status(400).send("Date is required");
+    }
+
+    // Start and end of day
+    const start = new Date(date);
+    start.setHours(0,0,0,0);
+
+    const end = new Date(date);
+    end.setHours(23,59,59,999);
+
+    const bookings = await reservationCoolly.find({
+      bookingDateTime: { $gte: start, $lte: end }
+    }).sort({ bookingDateTime: 1 });
+
+    const data = bookings.map(b => {
+
+      const reservationDate = format(
+        new Date(b.bookingDateTime),
+        "dd MMMM yyyy HH:mm",
+        { locale: th }
+      );
+
+      const createdAt = format(
+        new Date(b.createdAt),
+        "dd MMMM yyyy HH:mm",
+        { locale: th }
+      );
+
+      return {
+        ชื่อลูกค้า: b.name,
+        เบอร์โทร: b.phone,
+        เลขโต๊ะ: Array.isArray(b.tables) ? b.tables.join(", ") : b.tables,
+        จำนวน: b.amount,
+        วันที่จอง: reservationDate,
+        รายละเอียด: b.remark || "",
+        สถานะการจอง: b.status,
+        มัดจำโต๊ะ: b.transfer,
+        ผู้จอง: b.createBy,
+        จองเมื่อ: createdAt
+      };
+
+    });
+
+    // Create worksheet
+    const worksheet = XLSX.utils.json_to_sheet(data);
+
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Reservations");
+
+    // Convert workbook to buffer
+    const buffer = XLSX.write(workbook, {
+      type: "buffer",
+      bookType: "xlsx"
+    });
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=view-village-${date}.xlsx`
+    );
+
+    res.send(buffer);
+
+  } catch (err) {
+    console.error("Excel Export Error:", err);
+    res.status(500).send("Error exporting Excel");
   }
 });
 

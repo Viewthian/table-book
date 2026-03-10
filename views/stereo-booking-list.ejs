@@ -520,13 +520,15 @@
             </div>
 
 
-            <form style="margin-top: 15px;" class="filter-bar" action="/stereo-export-csv" method="GET" class="export-form">
-  
+            <form style="margin-top: 15px;" class="filter-bar" action="/stereo-export-excel" method="GET">
+
               <div class="filter-item">
                 <label>เลือกวันที่:</label>
+
                 <input 
-                  type="date" 
-                  name="date" 
+                  type="date"
+                  id="exportDate"
+                  name="date"
                   class="form-control"
                   required
                 >
@@ -535,10 +537,10 @@
 
               <div style="text-align: right; margin-top: 22px;">
                 <button type="submit" class="btn btn-success">
-                    Export CSV
+                  Export Excel
                 </button>
               </div>
-              
+
             </form>
 
     </div>
@@ -666,6 +668,11 @@
         }
       });
     });
+  </script>
+
+  <script>
+    const today = new Date().toISOString().split("T")[0];
+    document.getElementById("exportDate").value = today;
   </script>
 
 
