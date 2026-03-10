@@ -426,7 +426,9 @@
                   <th>สลิป</th>
                   <th>ผู้จอง</th>
                   <th>แก้ไข</th>
+                  <% if (isAdmin) { %>
                   <th>ลบ</th>
+                  <% } %>
                 </tr>
               </thead>
 
@@ -494,11 +496,13 @@
                     <td>
                       <a href="/edit-booking-viewbar/<%= b._id %>" class="btn-sm btn-edit">Edit</a>
                     </td>
+                    <% if (isAdmin) { %>
                     <td>
                       <a href="/delete-viewbar-booking/<%= b._id %>"
                         onclick="return confirm('Do you want to delete?')"
                         class="btn-sm btn-delete">Delete</a>
                     </td>
+                    <% } %>
                   </tr>
                 <% }) %>
               </tbody>

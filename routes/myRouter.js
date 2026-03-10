@@ -447,63 +447,6 @@ router.get("/view-village-dashboard", async (req, res) => {
 });
 
 // ====================================
-// EXPORT CSV VIEW VILLAGE
-// ====================================
-router.get("/view-village-export-csv", async (req, res) => {
-  try {
-
-    const { date } = req.query;
-
-    if (!date) {
-      return res.status(400).send("Date is required");
-    }
-
-    // Create start and end of selected day
-    const start = new Date(date);
-    start.setHours(0,0,0,0);
-
-    const end = new Date(date);
-    end.setHours(23,59,59,999);
-
-    const bookings = await reservationViewVillage.find({
-      bookingDateTime: { $gte: start, $lte: end }
-    }).sort({ bookingDateTime: 1 });
-
-    let csv = "ชื่อลูกค้า,เบอร์โทร,เลขโต๊ะ,จำนวน,วันที่จอง,รายละเอียด,สถานะการจอง,มัดจำโต๊ะ,ผู้จอง,จองเมื่อ\n";
-
-    bookings.forEach(b => {
-
-      const reservationDate = format(
-        new Date(b.bookingDateTime),
-        "dd MMMM yyyy HH:mm",
-        { locale: th }
-      );
-
-      const createdAt = format(
-        new Date(b.createdAt),
-        "dd MMMM yyyy HH:mm",
-        { locale: th }
-      );
-
-      csv += `"${b.name}","${b.phone}","${b.tables}","${b.amount}","${reservationDate}","${b.remark || ""}","${b.status}","${b.transfer}","${b.createBy}","${createdAt}"\n`;
-
-    });
-
-    res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=view-village-${date}.csv`
-    );
-
-    res.send("\uFEFF" + csv);
-
-  } catch (err) {
-    console.error("CSV Export Error:", err);
-    res.status(500).send("Error exporting CSV");
-  }
-});
-
-// ====================================
 // EXPORT EXCEL VIEW VILLAGE
 // ====================================
 
@@ -1127,63 +1070,6 @@ router.get("/viewbar-dashboard", async (req, res) => {
 });
 
 // ====================================
-// EXPORT CSV VIEW BAR
-// ====================================
-router.get("/viewbar-export-csv", async (req, res) => {
-  try {
-
-    const { date } = req.query;
-
-    if (!date) {
-      return res.status(400).send("Date is required");
-    }
-
-    // Create start and end of selected day
-    const start = new Date(date);
-    start.setHours(0,0,0,0);
-
-    const end = new Date(date);
-    end.setHours(23,59,59,999);
-
-    const bookings = await Reservation.find({
-      bookingDateTime: { $gte: start, $lte: end }
-    }).sort({ bookingDateTime: 1 });
-
-    let csv = "ชื่อลูกค้า,เบอร์โทร,เลขโต๊ะ,จำนวน,วันที่จอง,รายละเอียด,สถานะการจอง,มัดจำโต๊ะ,ผู้จอง,จองเมื่อ\n";
-
-    bookings.forEach(b => {
-
-      const reservationDate = format(
-        new Date(b.bookingDateTime),
-        "dd MMMM yyyy HH:mm",
-        { locale: th }
-      );
-
-      const createdAt = format(
-        new Date(b.createdAt),
-        "dd MMMM yyyy HH:mm",
-        { locale: th }
-      );
-
-      csv += `"${b.name}","${b.phone}","${b.tables}","${b.amount}","${reservationDate}","${b.remark || ""}","${b.status}","${b.transfer}","${b.createBy}","${createdAt}"\n`;
-
-    });
-
-    res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=view-bar-${date}.csv`
-    );
-
-    res.send("\uFEFF" + csv);
-
-  } catch (err) {
-    console.error("CSV Export Error:", err);
-    res.status(500).send("Error exporting CSV");
-  }
-});
-
-// ====================================
 // EXPORT EXCEL VIEW BAR
 // ====================================
 router.get("/viewbar-export-excel", async (req, res) => {
@@ -1615,63 +1501,6 @@ router.get("/stereo-dashboard", async (req, res) => {
   } catch (err) {
     console.error("Dashboard error:", err);
     res.status(500).send("Error loading dashboard");
-  }
-});
-
-// ====================================
-// EXPORT CSV STEREO BAR
-// ====================================
-router.get("/stereo-export-csv", async (req, res) => {
-  try {
-
-    const { date } = req.query;
-
-    if (!date) {
-      return res.status(400).send("Date is required");
-    }
-
-    // Create start and end of selected day
-    const start = new Date(date);
-    start.setHours(0,0,0,0);
-
-    const end = new Date(date);
-    end.setHours(23,59,59,999);
-
-    const bookings = await reservationStereo.find({
-      bookingDateTime: { $gte: start, $lte: end }
-    }).sort({ bookingDateTime: 1 });
-
-    let csv = "ชื่อลูกค้า,เบอร์โทร,เลขโต๊ะ,จำนวน,วันที่จอง,รายละเอียด,สถานะการจอง,มัดจำโต๊ะ,ผู้จอง,จองเมื่อ\n";
-
-    bookings.forEach(b => {
-
-      const reservationDate = format(
-        new Date(b.bookingDateTime),
-        "dd MMMM yyyy HH:mm",
-        { locale: th }
-      );
-
-      const createdAt = format(
-        new Date(b.createdAt),
-        "dd MMMM yyyy HH:mm",
-        { locale: th }
-      );
-
-      csv += `"${b.name}","${b.phone}","${b.tables}","${b.amount}","${reservationDate}","${b.remark || ""}","${b.status}","${b.transfer}","${b.createBy}","${createdAt}"\n`;
-
-    });
-
-    res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=stereo-bar-${date}.csv`
-    );
-
-    res.send("\uFEFF" + csv);
-
-  } catch (err) {
-    console.error("CSV Export Error:", err);
-    res.status(500).send("Error exporting CSV");
   }
 });
 
@@ -2204,63 +2033,6 @@ router.get("/coolly-dashboard", async (req, res) => {
   } catch (err) {
     console.error("Dashboard error:", err);
     res.status(500).send("Error loading dashboard");
-  }
-});
-
-// ====================================
-// EXPORT CSV COOLLY CHEF
-// ====================================
-router.get("/coolly-export-csv", async (req, res) => {
-  try {
-
-    const { date } = req.query;
-
-    if (!date) {
-      return res.status(400).send("Date is required");
-    }
-
-    // Create start and end of selected day
-    const start = new Date(date);
-    start.setHours(0,0,0,0);
-
-    const end = new Date(date);
-    end.setHours(23,59,59,999);
-
-    const bookings = await reservationCoolly.find({
-      bookingDateTime: { $gte: start, $lte: end }
-    }).sort({ bookingDateTime: 1 });
-
-    let csv = "ชื่อลูกค้า,เบอร์โทร,เลขโต๊ะ,จำนวน,วันที่จอง,รายละเอียด,สถานะการจอง,มัดจำโต๊ะ,ผู้จอง,จองเมื่อ\n";
-
-    bookings.forEach(b => {
-
-      const reservationDate = format(
-        new Date(b.bookingDateTime),
-        "dd MMMM yyyy HH:mm",
-        { locale: th }
-      );
-
-      const createdAt = format(
-        new Date(b.createdAt),
-        "dd MMMM yyyy HH:mm",
-        { locale: th }
-      );
-
-      csv += `"${b.name}","${b.phone}","${b.tables}","${b.amount}","${reservationDate}","${b.remark || ""}","${b.status}","${b.transfer}","${b.createBy}","${createdAt}"\n`;
-
-    });
-
-    res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=coolly-chef-${date}.csv`
-    );
-
-    res.send("\uFEFF" + csv);
-
-  } catch (err) {
-    console.error("CSV Export Error:", err);
-    res.status(500).send("Error exporting CSV");
   }
 });
 
