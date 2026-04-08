@@ -2,6 +2,18 @@ const { Resend } = require("resend");
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+function formatThaiDate(date) {
+  return new Date(date).toLocaleString("th-TH", {
+    timeZone: "Asia/Bangkok",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  });
+}
+
 function generateTable(title, bookings) {
 
   if (!bookings || bookings.length === 0) {
@@ -13,14 +25,20 @@ function generateTable(title, bookings) {
     `;
   }
 
+  bookings.sort((a, b) => 
+    new Date(a.bookingDateTime) - new Date(b.bookingDateTime)
+  );
+
   const rows = bookings.map(b => `
     <tr>
       <td>${b.name || "-"}</td>
       <td>${b.phone || "-"}</td>
       <td>${Array.isArray(b.tables) ? b.tables.join(", ") : b.tables || "-"}</td>
       <td>${b.amount || "-"}</td>
-      <td>${new Date(b.bookingDateTime).toLocaleString("th-TH")}</td>
-      <td>${b.status || "-"}</td>
+      <td>${formatThaiDate(b.bookingDateTime)} น.</td>
+      <td style="font-weight:bold;color:${b.status === 'confirmed' ? 'green' : b.status === 'cancelled' ? 'red' : '#333'}">
+        ${b.status || "-"}
+      </td>
     </tr>
   `).join("");
 
