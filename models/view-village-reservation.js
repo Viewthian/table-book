@@ -44,7 +44,7 @@ const ReservationSchema = new mongoose.Schema({
 
   // ✅ image path or URL
   image: {
-    type: String, // e.g. "/uploads/slip_123.jpg"
+    type: [String], // e.g. "/uploads/slip_123.jpg"
   },
 
   createBy: {

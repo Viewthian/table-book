@@ -135,18 +135,24 @@
       <option value="2000">2,000</option>
     </select>
 
-    <!-- ✅ Image upload -->
+    <!-- ✅ Multiple image upload -->
     <input
       type="file"
       id="slip"
       accept="image/png, image/jpeg"
+      multiple
     >
 
-    <!-- ✅ Preview -->
-    <img
-      id="preview"
-      style="display:none; max-width:200px; margin-top:10px; border-radius:8px;"
-    >
+    <!-- ✅ Preview container -->
+    <div
+      id="previewContainer"
+      style="
+        display:flex;
+        flex-wrap:wrap;
+        gap:10px;
+        margin-top:10px;
+      "
+    ></div>
 
     <textarea id="remark" placeholder="รายละเอียดเพิ่มเติม"></textarea>
   </div>
@@ -173,17 +179,12 @@
   </div>
 </div>
 
-
-
-
-
 <script>
   const tables = JSON.parse('<%- JSON.stringify(tables) %>');
   const staticElements = JSON.parse('<%- JSON.stringify(staticElements) %>');
 </script>
 
 <script src="/js/view-village-floor.js"></script>
-
 
 </body>
 </html>

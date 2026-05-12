@@ -147,7 +147,7 @@ router.post(
     req.uploadFolder = "view-village";
     next();
   },
-  upload.single("image"),
+  upload.array("image", 5),
   async (req, res) => {
     try {
       // 🔐 Make sure user is logged in
@@ -174,7 +174,9 @@ router.post(
         remark,
         createBy: req.session.username, // ✅ FROM SESSION
         tables: JSON.parse(tables),
-        image: req.file ? `/uploads/view-village/${req.file.filename}` : null
+        image: req.files.map(file =>
+          `/uploads/view-village/${file.filename}`
+        )
       });
 
       await booking.save();
