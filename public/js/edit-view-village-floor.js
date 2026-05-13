@@ -4,13 +4,12 @@ const confirmBtn = document.getElementById("confirm");
 const tooltip = document.getElementById("tooltip");
 const timePicker = document.getElementById("timePicker");
 const slipInput = document.getElementById("slip");
-const preview = document.getElementById("preview");
 
-const previewImg = document.getElementById("preview");
 const imageModal = document.getElementById("imageModal");
 const modalImg = document.getElementById("modalImage");
 const closeModal = document.querySelector(".close-modal");
 
+const previewContainer = document.getElementById("previewContainer");
 
 const selectedTables = new Set(window.existingTables || []);
 let reservedInfo = {};
@@ -142,22 +141,47 @@ function generateTimeSlots() {
 generateTimeSlots();
 
 slipInput.addEventListener("change", () => {
-  const file = slipInput.files[0];
-  if (!file) return;
 
-  if (!["image/jpeg", "image/png"].includes(file.type)) {
-    alert("Only JPG or PNG allowed");
-    slipInput.value = "";
-    preview.style.display = "none";
-    return;
-  }
+  previewContainer.innerHTML = "";
 
-  const reader = new FileReader();
-  reader.onload = e => {
-    preview.src = e.target.result;
-    preview.style.display = "block";
-  };
-  reader.readAsDataURL(file);
+  const files = slipInput.files;
+
+  if (!files.length) return;
+
+  Array.from(files).forEach(file => {
+
+    if (
+      !["image/jpeg", "image/png"]
+      .includes(file.type)
+    ) {
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = e => {
+
+      const img =
+        document.createElement("img");
+
+      img.src = e.target.result;
+
+      img.style.width = "120px";
+      img.style.height = "120px";
+      img.style.objectFit = "cover";
+      img.style.borderRadius = "8px";
+      img.style.border = "1px solid #555";
+      img.style.cursor = "pointer";
+
+      img.classList.add("clickable-image");
+
+      previewContainer.appendChild(img);
+    };
+
+    reader.readAsDataURL(file);
+
+  });
+
 });
 
 
@@ -172,7 +196,7 @@ confirmBtn.onclick = async () => {
   const amount = Number(document.getElementById("amount").value);
   const transfer = Number(document.getElementById("transfer").value);
   const remark = document.getElementById("remark").value;
-  const image = document.getElementById("slip").files[0];
+
 
   if (!name || !phone || !date || !time || !amount || selectedTables.size === 0) {
     showErrorModal("กรุณากรอกข้อมูลให้ครบถ้วน");
@@ -190,7 +214,12 @@ confirmBtn.onclick = async () => {
   formData.append("remark", remark);
   formData.append("tables", JSON.stringify([...selectedTables]));
 
-  if (image) formData.append("image", image);
+  const files =
+    document.getElementById("slip").files;
+
+  Array.from(files).forEach(file => {
+    formData.append("image", file);
+  });
 
   const res = await fetch(`/update-view-village/${id}`, {
     method: "POST",
@@ -231,13 +260,22 @@ function showSuccessModal() {
   }, 1000);
 }
 
-if (previewImg) {
-  previewImg.addEventListener("click", () => {
-    modalImg.src = previewImg.src;
+document.addEventListener("click", e => {
+
+  if (
+    e.target.classList.contains(
+      "clickable-image"
+    )
+  ) {
+
+    modalImg.src = e.target.src;
+
     imageModal.style.display = "flex";
-    document.body.style.overflow = "hidden"; // lock scroll
-  });
-}
+
+    document.body.style.overflow = "hidden";
+  }
+
+});
 
 closeModal.addEventListener("click", () => {
   imageModal.style.display = "none";

@@ -133,20 +133,52 @@
       <option value="2000" <%= booking.transfer === 2000 ? "selected" : "" %>>2,000</option>
     </select>
 
-    <!-- Image -->
-    <input type="file" id="slip" accept="image/png, image/jpeg">
-    <% if (booking.image) { %>
-      <img
-        id="preview"
-        src="<%= booking.image %>"
-        style="max-width:200px; margin-top:10px; border-radius:8px;"
-        class="clickable-image"
-        alt="Slip Image"
-      >
-    <% } else { %>
-      <!-- <img id="preview" style="display:none; max-width:200px;"> -->
-       <img id="preview" style="display:none;">
-    <% } %>
+    <!-- ✅ Multiple Upload -->
+    <input
+      type="file"
+      id="slip"
+      accept="image/png, image/jpeg"
+      multiple
+    >
+
+    <!-- ✅ Preview Container -->
+    <div
+      id="previewContainer"
+      style="
+        display:flex;
+        flex-wrap:wrap;
+        gap:10px;
+        margin-top:10px;
+      "
+    >
+
+      <%
+        const images = Array.isArray(booking.image)
+          ? booking.image
+          : booking.image
+            ? [booking.image]
+            : [];
+      %>
+
+      <% images.forEach(img => { %>
+
+        <img
+          src="<%= img %>"
+          class="preview-thumb clickable-image"
+          style="
+            width:120px;
+            height:120px;
+            object-fit:cover;
+            border-radius:8px;
+            border:1px solid #555;
+            cursor:pointer;
+          "
+          alt="Slip Image"
+        >
+
+      <% }) %>
+
+    </div>
 
     <div id="imageModal" class="image-modal">
       <span class="close-modal">&times;</span>

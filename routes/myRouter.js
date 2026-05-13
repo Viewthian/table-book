@@ -610,7 +610,7 @@ router.post(
     req.uploadFolder = "view-village";
     next();
   },
-  upload.single("image"),
+  upload.array("image", 5),
   async (req, res) => {
     try {
       // 🔐 Auth check
@@ -645,8 +645,12 @@ router.post(
       };
 
       // ✅ Only overwrite image if new one uploaded
-      if (req.file) {
-        updatedData.image = `/uploads/view-village/${req.file.filename}`;
+      if (req.files && req.files.length > 0) {
+
+        updatedData.image = req.files.map(file =>
+          `/uploads/view-village/${file.filename}`
+        );
+
       }
 
       const updated = await reservationViewVillage.findByIdAndUpdate(
