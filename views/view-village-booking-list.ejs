@@ -477,7 +477,15 @@
                     </td>
                     <td data-label="Slip">
 
-                      <% if (b.image && b.image.length > 0) { %>
+                      <%
+                        const images = Array.isArray(b.image)
+                          ? b.image
+                          : b.image
+                            ? [b.image]
+                            : [];
+                      %>
+
+                      <% if (images.length > 0) { %>
 
                         <div
                           style="
@@ -487,7 +495,7 @@
                           "
                         >
 
-                          <% b.image.forEach(img => { %>
+                          <% images.forEach(img => { %>
 
                             <div class="image-hover-wrapper">
 
