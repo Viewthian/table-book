@@ -462,17 +462,40 @@ router.get("/view-village-export-excel", async (req, res) => {
       return res.status(400).send("Date is required");
     }
 
-    // Start and end of day
+    // Start and end of selected day
     const start = new Date(date);
-    start.setHours(0,0,0,0);
+    start.setHours(0, 0, 0, 0);
 
     const end = new Date(date);
-    end.setHours(23,59,59,999);
+    end.setHours(23, 59, 59, 999);
 
+    // Fetch bookings
     const bookings = await reservationViewVillage.find({
       bookingDateTime: { $gte: start, $lte: end }
-    }).sort({ bookingDateTime: 1 });
+    });
 
+    // Sort by table number (T1 -> T18 correctly)
+    bookings.sort((a, b) => {
+
+      const tableA = Array.isArray(a.tables)
+        ? a.tables[0]
+        : a.tables;
+
+      const tableB = Array.isArray(b.tables)
+        ? b.tables[0]
+        : b.tables;
+
+      return String(tableA).localeCompare(
+        String(tableB),
+        undefined,
+        {
+          numeric: true,
+          sensitivity: "base"
+        }
+      );
+    });
+
+    // Prepare Excel data
     const data = bookings.map(b => {
 
       const reservationDate = format(
@@ -490,7 +513,9 @@ router.get("/view-village-export-excel", async (req, res) => {
       return {
         ชื่อลูกค้า: b.name,
         เบอร์โทร: b.phone,
-        เลขโต๊ะ: Array.isArray(b.tables) ? b.tables.join(", ") : b.tables,
+        เลขโต๊ะ: Array.isArray(b.tables)
+          ? b.tables.join(", ")
+          : b.tables,
         จำนวน: b.amount,
         วันที่จอง: reservationDate,
         รายละเอียด: b.remark || "",
@@ -499,22 +524,36 @@ router.get("/view-village-export-excel", async (req, res) => {
         ผู้จอง: b.createBy,
         จองเมื่อ: createdAt
       };
-
     });
 
     // Create worksheet
     const worksheet = XLSX.utils.json_to_sheet(data);
 
+    // Auto column width (optional improvement)
+    worksheet["!cols"] = [
+      { wch: 20 },
+      { wch: 15 },
+      { wch: 12 },
+      { wch: 10 },
+      { wch: 25 },
+      { wch: 30 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 25 }
+    ];
+
     // Create workbook
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Reservations");
 
-    // Convert workbook to buffer
+    // Generate buffer
     const buffer = XLSX.write(workbook, {
       type: "buffer",
       bookType: "xlsx"
     });
 
+    // Response headers
     res.setHeader(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
