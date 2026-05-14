@@ -4,9 +4,7 @@ const confirmBtn = document.getElementById("confirm");
 const tooltip = document.getElementById("tooltip");
 const timePicker = document.getElementById("timePicker");
 const slipInput = document.getElementById("slip");
-const preview = document.getElementById("preview");
 
-const previewImg = document.getElementById("preview");
 const imageModal = document.getElementById("imageModal");
 const modalImg = document.getElementById("modalImage");
 const closeModal = document.querySelector(".close-modal");
@@ -160,23 +158,53 @@ function generateTimeSlots() {
 // generate once on page load
 generateTimeSlots();
 
-slipInput.addEventListener("change", () => {
-  const file = slipInput.files[0];
-  if (!file) return;
+const previewContainer =
+  document.getElementById("previewContainer");
 
-  if (!["image/jpeg", "image/png"].includes(file.type)) {
-    alert("Only JPG or PNG allowed");
+slipInput.addEventListener("change", () => {
+
+  previewContainer.innerHTML = "";
+
+  const files = slipInput.files;
+
+  // ✅ LIMIT MAX 5 IMAGES
+  if (files.length > 5) {
+
+    showErrorModal("อัปโหลดรูปได้สูงสุด 5 รูป");
+
     slipInput.value = "";
-    preview.style.display = "none";
+
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = e => {
-    preview.src = e.target.result;
-    preview.style.display = "block";
-  };
-  reader.readAsDataURL(file);
+  Array.from(files).forEach(file => {
+
+    // Validate image type
+    if (!["image/jpeg", "image/png"].includes(file.type)) {
+      alert("Only JPG or PNG allowed");
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = e => {
+
+      const img = document.createElement("img");
+
+      img.src = e.target.result;
+
+      img.style.width = "120px";
+      img.style.height = "120px";
+      img.style.objectFit = "cover";
+      img.style.borderRadius = "8px";
+      img.style.border = "1px solid #555";
+
+      previewContainer.appendChild(img);
+    };
+
+    reader.readAsDataURL(file);
+  });
+
 });
 
 
@@ -212,9 +240,9 @@ confirmBtn.onclick = async () => {
   formData.append("remark", remark);
   formData.append("tables", JSON.stringify([...selectedTables]));
 
-  if (slipInput.files[0]) {
-    formData.append("image", slipInput.files[0]);
-  }
+  Array.from(slipInput.files).forEach(file => {
+    formData.append("image", file);
+  });
 
   const res = await fetch("/reserve-coolly", {
     method: "POST",
@@ -254,26 +282,18 @@ function showSuccessModal() {
   }, 1000);
 }
 
-if (previewImg) {
-  previewImg.addEventListener("click", () => {
-    modalImg.src = previewImg.src;
-    imageModal.style.display = "flex";
-    document.body.style.overflow = "hidden"; // lock scroll
-  });
-}
-
-// closeModal.addEventListener("click", () => {
-//   imageModal.style.display = "none";
-//   document.body.style.overflow = "";
-// });
+closeModal.addEventListener("click", () => {
+  imageModal.style.display = "none";
+  document.body.style.overflow = "";
+});
 
 // Close when clicking outside image
-// imageModal.addEventListener("click", e => {
-//   if (e.target === imageModal) {
-//     imageModal.style.display = "none";
-//     document.body.style.overflow = "";
-//   }
-// });
+imageModal.addEventListener("click", e => {
+  if (e.target === imageModal) {
+    imageModal.style.display = "none";
+    document.body.style.overflow = "";
+  }
+});
 
 
 

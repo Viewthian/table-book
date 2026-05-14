@@ -656,7 +656,7 @@ router.post(
       const updated = await reservationViewVillage.findByIdAndUpdate(
         update_id,
         updatedData,
-        { new: true }
+        { returnDocument: "after" }
       );
 
       if (!updated) {
@@ -866,7 +866,7 @@ router.post(
     req.uploadFolder = "viewbar";
     next();
   },
-  upload.single("image"),
+  upload.array("image", 5),
   async (req, res) => {
     try {
       // 🔐 Make sure user is logged in
@@ -893,7 +893,9 @@ router.post(
         remark,
         createBy: req.session.username, // ✅ FROM SESSION
         tables: JSON.parse(tables),
-        image: req.file ? `/uploads/viewbar/${req.file.filename}` : null
+        image: req.files.map(file =>
+          `/uploads/viewbar/${file.filename}`
+        )
       });
 
       await booking.save();
@@ -910,11 +912,13 @@ router.post(
 //EDIT RESERVATION
 router.get("/edit-booking-viewbar/:id", async (req, res) => {
   try {
+
     if (!req.session || !req.session.username) {
       return res.status(401).render("login");
     }
 
-    const booking = await Reservation.findById(req.params.id).lean();
+    const booking =
+      await Reservation.findById(req.params.id).lean();
 
     if (!booking) {
       return res.status(404).send("Booking not found");
@@ -922,20 +926,23 @@ router.get("/edit-booking-viewbar/:id", async (req, res) => {
 
     res.render("edit-booking-viewbar", {
       booking,
-      tables: tables,
-      staticElements: staticElements,
-      existingTables: Array.isArray(booking.tables)
-        ? booking.tables
-        : [],
-      image: req.file ? `/uploads/viewbar/${req.file.filename}` : null,
+      tables,
+      staticElements,
+
+      existingTables:
+        Array.isArray(booking.tables)
+          ? booking.tables
+          : [],
+
       username: req.session.username,
       isAdmin: req.session.isAdmin,
       isLogin: req.session.login
     });
 
-
   } catch (err) {
+
     console.error(err);
+
     res.status(500).send("Error loading booking");
   }
 });
@@ -946,7 +953,7 @@ router.post(
     req.uploadFolder = "viewbar";
     next();
   },
-  upload.single("image"),
+  upload.array("image", 5),
   async (req, res) => {
     try {
       // 🔐 Auth check
@@ -981,14 +988,18 @@ router.post(
       };
 
       // ✅ Only overwrite image if new one uploaded
-      if (req.file) {
-        updatedData.image = `/uploads/viewbar/${req.file.filename}`;
+      if (req.files && req.files.length > 0) {
+
+        updatedData.image = req.files.map(file =>
+          `/uploads/viewbar/${file.filename}`
+        );
+
       }
 
       const updated = await Reservation.findByIdAndUpdate(
         update_id,
         updatedData,
-        { new: true }
+        { returnDocument: "after" }
       );
 
       if (!updated) {
@@ -1251,7 +1262,7 @@ router.post(
     req.uploadFolder = "stereobar";
     next();
   },
-  upload.single("image"),
+  upload.array("image", 5),
   async (req, res) => {
     try {
       // 🔐 Make sure user is logged in
@@ -1278,7 +1289,9 @@ router.post(
         remark,
         createBy: req.session.username, // ✅ FROM SESSION
         tables: JSON.parse(tables),
-        image: req.file ? `/uploads/stereobar/${req.file.filename}` : null
+        image: req.files.map(file =>
+          `/uploads/stereobar/${file.filename}`
+        )
       });
 
       await booking.save();
@@ -1671,7 +1684,7 @@ router.post(
     req.uploadFolder = "stereobar";
     next();
   },
-  upload.single("image"),
+  upload.array("image", 5),
   async (req, res) => {
     try {
       // 🔐 Auth check
@@ -1706,14 +1719,18 @@ router.post(
       };
 
       // ✅ Only overwrite image if new one uploaded
-      if (req.file) {
-        updatedData.image = `/uploads/stereobar/${req.file.filename}`;
+      if (req.files && req.files.length > 0) {
+
+        updatedData.image = req.files.map(file =>
+          `/uploads/stereobar/${file.filename}`
+        );
+
       }
 
       const updated = await reservationStereo.findByIdAndUpdate(
         update_id,
         updatedData,
-        { new: true }
+        { returnDocument: "after" }
       );
 
       if (!updated) {
@@ -1783,7 +1800,7 @@ router.post(
     req.uploadFolder = "coolly";
     next();
   },
-  upload.single("image"),
+  upload.array("image", 5),
   async (req, res) => {
     try {
       // 🔐 Make sure user is logged in
@@ -1810,7 +1827,9 @@ router.post(
         remark,
         createBy: req.session.username, // ✅ FROM SESSION
         tables: JSON.parse(tables),
-        image: req.file ? `/uploads/coolly/${req.file.filename}` : null
+        image: req.files.map(file =>
+          `/uploads/coolly/${file.filename}`
+        )
       });
 
       await booking.save();
@@ -2203,7 +2222,7 @@ router.post(
     req.uploadFolder = "coolly";
     next();
   },
-  upload.single("image"),
+  upload.array("image", 5),
   async (req, res) => {
     try {
       // 🔐 Auth check
@@ -2238,14 +2257,18 @@ router.post(
       };
 
       // ✅ Only overwrite image if new one uploaded
-      if (req.file) {
-        updatedData.image = `/uploads/coolly/${req.file.filename}`;
+      if (req.files && req.files.length > 0) {
+
+        updatedData.image = req.files.map(file =>
+          `/uploads/coolly/${file.filename}`
+        );
+
       }
 
       const updated = await reservationCoolly.findByIdAndUpdate(
         update_id,
         updatedData,
-        { new: true }
+        { returnDocument: "after" }
       );
 
       if (!updated) {

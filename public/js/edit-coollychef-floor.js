@@ -143,22 +143,55 @@ function generateTimeSlots() {
 generateTimeSlots();
 
 slipInput.addEventListener("change", () => {
-  const file = slipInput.files[0];
-  if (!file) return;
 
-  if (!["image/jpeg", "image/png"].includes(file.type)) {
-    alert("Only JPG or PNG allowed");
+  previewContainer.innerHTML = "";
+
+  const files = slipInput.files;
+
+  // ✅ LIMIT MAX 5 IMAGES
+  if (files.length > 5) {
+
+    showErrorModal("อัปโหลดรูปได้สูงสุด 5 รูป");
+
     slipInput.value = "";
-    preview.style.display = "none";
+
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = e => {
-    preview.src = e.target.result;
-    preview.style.display = "block";
-  };
-  reader.readAsDataURL(file);
+  Array.from(files).forEach(file => {
+
+    if (
+      !["image/jpeg", "image/png"]
+      .includes(file.type)
+    ) {
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = e => {
+
+      const img =
+        document.createElement("img");
+
+      img.src = e.target.result;
+
+      img.style.width = "120px";
+      img.style.height = "120px";
+      img.style.objectFit = "cover";
+      img.style.borderRadius = "8px";
+      img.style.border = "1px solid #555";
+      img.style.cursor = "pointer";
+
+      img.classList.add("clickable-image");
+
+      previewContainer.appendChild(img);
+    };
+
+    reader.readAsDataURL(file);
+
+  });
+
 });
 
 
@@ -191,7 +224,12 @@ confirmBtn.onclick = async () => {
   formData.append("remark", remark);
   formData.append("tables", JSON.stringify([...selectedTables]));
 
-  if (image) formData.append("image", image);
+  const files =
+    document.getElementById("slip").files;
+
+  Array.from(files).forEach(file => {
+    formData.append("image", file);
+  });
 
   const res = await fetch(`/update-coolly/${id}`, {
     method: "POST",
@@ -232,13 +270,6 @@ function showSuccessModal() {
   }, 1000);
 }
 
-if (previewImg) {
-  previewImg.addEventListener("click", () => {
-    modalImg.src = previewImg.src;
-    imageModal.style.display = "flex";
-    document.body.style.overflow = "hidden"; // lock scroll
-  });
-}
 
 closeModal.addEventListener("click", () => {
   imageModal.style.display = "none";

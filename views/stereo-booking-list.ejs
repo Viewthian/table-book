@@ -476,22 +476,53 @@
                       >
                     </td>
                     <td data-label="Slip">
-                      <% if (b.image) { %>
-                        <div class="image-hover-wrapper">
-                          <img
-                            src="<%= b.image %>"
-                            class="slip-thumb"
-                            alt="Slip Image"
-                          >
-                          <img
-                            src="<%= b.image %>"
-                            class="slip-preview"
-                            alt="Slip Preview"
-                          >
+
+                      <%
+                        const images = Array.isArray(b.image)
+                          ? b.image
+                          : b.image
+                            ? [b.image]
+                            : [];
+                      %>
+
+                      <% if (images.length > 0) { %>
+
+                        <div
+                          style="
+                            display:flex;
+                            gap:8px;
+                            flex-wrap:wrap;
+                          "
+                        >
+
+                          <% images.forEach(img => { %>
+
+                            <div class="image-hover-wrapper">
+
+                              <img
+                                src="<%= img %>"
+                                class="slip-thumb"
+                                alt="Slip Image"
+                              >
+
+                              <img
+                                src="<%= img %>"
+                                class="slip-preview"
+                                alt="Slip Preview"
+                              >
+
+                            </div>
+
+                          <% }) %>
+
                         </div>
+
                       <% } else { %>
+
                         -
+
                       <% } %>
+
                     </td>
                     <td data-label="createBy"><%= b.createBy %></td>
                     <td>

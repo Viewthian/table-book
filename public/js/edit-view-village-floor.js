@@ -146,7 +146,15 @@ slipInput.addEventListener("change", () => {
 
   const files = slipInput.files;
 
-  if (!files.length) return;
+  // ✅ LIMIT MAX 5 IMAGES
+  if (files.length > 5) {
+
+    showErrorModal("อัปโหลดรูปได้สูงสุด 5 รูป");
+
+    slipInput.value = "";
+
+    return;
+  }
 
   Array.from(files).forEach(file => {
 

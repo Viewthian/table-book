@@ -19,3 +19,34 @@ Installation
 10.install mongodb
 11.install mongoose (npm install mongoose) + connect mongoose
 12.
+
+
+
+Next Fix
+***Coolly
+>multiple images 
+-DB fixed
+-coolly-chef-floorplan.ejs
+-coolly js
+-reserve route fixed
+-display in table ejs
+-edit ejs   --done
+-edit route  --done
+
+***Stereo
+-DB fixed
+-floorplan.ejs fixed
+-floor.js fixed
+-reserve route fixed
+-edit ejs   --done
+-edit route  --done
+
+***View bar
+-DB fixed
+-floorplan.ejs fixed
+-floor.js fixed
+-reserve route fixed
+-edit ejs   --done
+-edit route  --done
+
+>sorting by table number

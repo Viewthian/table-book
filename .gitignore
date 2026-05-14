@@ -1,5 +1,6 @@
 .env
 /node_modules
+/pubic/uploads/*
 /pubic/uploads/view-village/*
 /pubic/uploads/viewbar/*
 /pubic/uploads/coolly/*
