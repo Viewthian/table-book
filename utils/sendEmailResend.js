@@ -25,9 +25,27 @@ function generateTable(title, bookings) {
     `;
   }
 
-  bookings.sort((a, b) => 
-    new Date(a.bookingDateTime) - new Date(b.bookingDateTime)
-  );
+  bookings.sort((a, b) => {
+
+    const getTableValue = booking => {
+
+      if (!booking.tables) return 9999;
+
+      const firstTable = Array.isArray(booking.tables)
+        ? booking.tables[0]
+        : booking.tables;
+
+      // Extract number from table name
+      const match = firstTable.match(/\d+/);
+
+      return match
+        ? parseInt(match[0], 10)
+        : 9999;
+    };
+
+    return getTableValue(a) - getTableValue(b);
+
+  });
 
   const rows = bookings.map(b => `
     <tr>
@@ -62,6 +80,32 @@ function generateTable(title, bookings) {
       </table>
     </div>
   `;
+}
+
+function sortBookingsByTable(bookings) {
+
+  return bookings.sort((a, b) => {
+
+    const getTableValue = booking => {
+
+      if (!booking.tables) return 9999;
+
+      const firstTable = Array.isArray(booking.tables)
+        ? booking.tables[0]
+        : booking.tables;
+
+      // Extract numeric part
+      const match = firstTable.match(/\d+/);
+
+      return match
+        ? parseInt(match[0], 10)
+        : 9999;
+    };
+
+    return getTableValue(a) - getTableValue(b);
+
+  });
+
 }
 
 async function sendEmailWithAttachment(date, attachments, data) {
@@ -183,4 +227,7 @@ async function sendEmailWithAttachment(date, attachments, data) {
   }
 }
 
-module.exports = sendEmailWithAttachment;
+module.exports = {
+  sendEmailWithAttachment,
+  sortBookingsByTable
+};

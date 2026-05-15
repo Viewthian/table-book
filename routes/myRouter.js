@@ -1146,7 +1146,28 @@ router.get("/viewbar-export-excel", async (req, res) => {
 
     const bookings = await Reservation.find({
       bookingDateTime: { $gte: start, $lte: end }
-    }).sort({ bookingDateTime: 1 });
+    });
+
+    // Sort by table number (T1 -> T18 correctly)
+    bookings.sort((a, b) => {
+
+      const tableA = Array.isArray(a.tables)
+        ? a.tables[0]
+        : a.tables;
+
+      const tableB = Array.isArray(b.tables)
+        ? b.tables[0]
+        : b.tables;
+
+      return String(tableA).localeCompare(
+        String(tableB),
+        undefined,
+        {
+          numeric: true,
+          sensitivity: "base"
+        }
+      );
+    });
 
     const data = bookings.map(b => {
 
@@ -1165,7 +1186,9 @@ router.get("/viewbar-export-excel", async (req, res) => {
       return {
         ชื่อลูกค้า: b.name,
         เบอร์โทร: b.phone,
-        เลขโต๊ะ: Array.isArray(b.tables) ? b.tables.join(", ") : b.tables,
+        เลขโต๊ะ: Array.isArray(b.tables)
+          ? b.tables.join(", ")
+          : b.tables,
         จำนวน: b.amount,
         วันที่จอง: reservationDate,
         รายละเอียด: b.remark || "",
@@ -1179,6 +1202,20 @@ router.get("/viewbar-export-excel", async (req, res) => {
 
     // Create worksheet
     const worksheet = XLSX.utils.json_to_sheet(data);
+
+    // Auto column width (optional improvement)
+    worksheet["!cols"] = [
+      { wch: 20 },
+      { wch: 15 },
+      { wch: 12 },
+      { wch: 10 },
+      { wch: 25 },
+      { wch: 30 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 25 }
+    ];
 
     // Create workbook
     const workbook = XLSX.utils.book_new();
@@ -1583,7 +1620,28 @@ router.get("/stereo-export-excel", async (req, res) => {
 
     const bookings = await reservationStereo.find({
       bookingDateTime: { $gte: start, $lte: end }
-    }).sort({ bookingDateTime: 1 });
+    });
+
+    // Sort by table number (T1 -> T18 correctly)
+    bookings.sort((a, b) => {
+
+      const tableA = Array.isArray(a.tables)
+        ? a.tables[0]
+        : a.tables;
+
+      const tableB = Array.isArray(b.tables)
+        ? b.tables[0]
+        : b.tables;
+
+      return String(tableA).localeCompare(
+        String(tableB),
+        undefined,
+        {
+          numeric: true,
+          sensitivity: "base"
+        }
+      );
+    });
 
     const data = bookings.map(b => {
 
@@ -1602,7 +1660,9 @@ router.get("/stereo-export-excel", async (req, res) => {
       return {
         ชื่อลูกค้า: b.name,
         เบอร์โทร: b.phone,
-        เลขโต๊ะ: Array.isArray(b.tables) ? b.tables.join(", ") : b.tables,
+        เลขโต๊ะ: Array.isArray(b.tables)
+          ? b.tables.join(", ")
+          : b.tables,
         จำนวน: b.amount,
         วันที่จอง: reservationDate,
         รายละเอียด: b.remark || "",
@@ -1616,6 +1676,20 @@ router.get("/stereo-export-excel", async (req, res) => {
 
     // Create worksheet
     const worksheet = XLSX.utils.json_to_sheet(data);
+
+    // Auto column width (optional improvement)
+    worksheet["!cols"] = [
+      { wch: 20 },
+      { wch: 15 },
+      { wch: 12 },
+      { wch: 10 },
+      { wch: 25 },
+      { wch: 30 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 25 }
+    ];
 
     // Create workbook
     const workbook = XLSX.utils.book_new();
@@ -2103,7 +2177,7 @@ router.get("/coolly-dashboard", async (req, res) => {
 // ====================================
 // EXPORT EXCEL COOLLY CHEF
 // ====================================
-router.get("/stereo-export-excel", async (req, res) => {
+router.get("/coolly-export-excel", async (req, res) => {
   try {
 
     const { date } = req.query;
@@ -2121,7 +2195,28 @@ router.get("/stereo-export-excel", async (req, res) => {
 
     const bookings = await reservationCoolly.find({
       bookingDateTime: { $gte: start, $lte: end }
-    }).sort({ bookingDateTime: 1 });
+    });
+
+    // Sort by table number (T1 -> T18 correctly)
+    bookings.sort((a, b) => {
+
+      const tableA = Array.isArray(a.tables)
+        ? a.tables[0]
+        : a.tables;
+
+      const tableB = Array.isArray(b.tables)
+        ? b.tables[0]
+        : b.tables;
+
+      return String(tableA).localeCompare(
+        String(tableB),
+        undefined,
+        {
+          numeric: true,
+          sensitivity: "base"
+        }
+      );
+    });
 
     const data = bookings.map(b => {
 
@@ -2140,7 +2235,9 @@ router.get("/stereo-export-excel", async (req, res) => {
       return {
         ชื่อลูกค้า: b.name,
         เบอร์โทร: b.phone,
-        เลขโต๊ะ: Array.isArray(b.tables) ? b.tables.join(", ") : b.tables,
+        เลขโต๊ะ: Array.isArray(b.tables)
+          ? b.tables.join(", ")
+          : b.tables,
         จำนวน: b.amount,
         วันที่จอง: reservationDate,
         รายละเอียด: b.remark || "",
@@ -2154,6 +2251,20 @@ router.get("/stereo-export-excel", async (req, res) => {
 
     // Create worksheet
     const worksheet = XLSX.utils.json_to_sheet(data);
+
+    // Auto column width (optional improvement)
+    worksheet["!cols"] = [
+      { wch: 20 },
+      { wch: 15 },
+      { wch: 12 },
+      { wch: 10 },
+      { wch: 25 },
+      { wch: 30 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 25 }
+    ];
 
     // Create workbook
     const workbook = XLSX.utils.book_new();

@@ -12,7 +12,7 @@ const {
   generateTheviewExcel
 } = require("../utils/exportExcel");
 
-const sendEmailWithAttachment = require("../utils/sendEmailResend");
+const {sendEmailWithAttachment, sortBookingsByTable} = require("../utils/sendEmailResend");
 
 console.log("📅 Scheduler loaded");
 
@@ -57,6 +57,9 @@ cron.schedule(
       // ---------- GENERATE FILES ----------
 
       if (stereoBookings?.length) {
+
+        sortBookingsByTable(stereoBookings);
+
         const buffer = Buffer.from(generateStereoExcel(stereoBookings));
 
         attachments.push({
@@ -68,10 +71,13 @@ cron.schedule(
       }
 
       if (coollyBookings?.length) {
+
+        sortBookingsByTable(coollyBookings);
+
         const buffer = Buffer.from(generateCoollyExcel(coollyBookings));
 
         attachments.push({
-          filename: `coolly-bookings-${todayStr}.xlsx`,
+          filename: `coollychef-bookings-${todayStr}.xlsx`,
           content: buffer
         });
 
@@ -79,10 +85,13 @@ cron.schedule(
       }
 
       if (viewbarBookings?.length) {
+
+        sortBookingsByTable(viewbarBookings);
+
         const buffer = Buffer.from(generateViewbarExcel(viewbarBookings));
 
         attachments.push({
-          filename: `viewbar-bookings-${todayStr}.xlsx`,
+          filename: `Theviewbar-bookings-${todayStr}.xlsx`,
           content: buffer
         });
 
@@ -90,14 +99,17 @@ cron.schedule(
       }
 
       if (theviewBookings?.length) {
+
+        sortBookingsByTable(theviewBookings);
+
         const buffer = Buffer.from(generateTheviewExcel(theviewBookings));
 
         attachments.push({
-          filename: `theview-bookings-${todayStr}.xlsx`,
+          filename: `theviewvillage-bookings-${todayStr}.xlsx`,
           content: buffer
         });
 
-        console.log(`📊 TheView bookings: ${theviewBookings.length}`);
+        console.log(`📊 TheViewVillage bookings: ${theviewBookings.length}`);
       }
 
       // ---------- NO BOOKINGS ----------
