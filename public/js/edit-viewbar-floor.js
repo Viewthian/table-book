@@ -212,6 +212,18 @@ confirmBtn.onclick = async () => {
 
   const bookingDateTime = new Date(`${date}T${time}:00`);
 
+  /* ---------------- LOADING START ---------------- */
+
+  confirmBtn.disabled = true;
+
+  const originalText =
+    confirmBtn.innerHTML;
+
+  confirmBtn.innerHTML =
+    "⏳ Processing...";
+
+  /* ---------------- FORM DATA ---------------- */
+
   const formData = new FormData();
   formData.append("name", name);
   formData.append("phone", phone);
@@ -228,25 +240,46 @@ confirmBtn.onclick = async () => {
     formData.append("image", file);
   });
 
-  const res = await fetch(`/update-viewbar/${id}`, {
-    method: "POST",
-    body: formData
-  });
+  try {
 
-  const data = await res.json();
+    const res = await fetch(`/update-viewbar/${id}`, {
+      method: "POST",
+      body: formData
+    });
 
-  if (!res.ok) {
-    showErrorModal(data.error || "แก้ไขไม่สำเร็จ โปรดลองอีกครั้ง");
-    return;
+    const data = await res.json();
+
+    if (!res.ok) {
+      showErrorModal(data.error || "แก้ไขไม่สำเร็จ โปรดลองอีกครั้ง");
+      return;
+    }
+
+    showSuccessModal("แก้ไขการจองสำเร็จ!");
+    
+    // 👇 SCROLL TO TOP
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+
+    } catch (err) {
+
+    console.error(err);
+
+    showErrorModal(
+      "Something went wrong"
+    );
+
+  } finally {
+
+    /* ---------------- LOADING END ---------------- */
+
+    confirmBtn.disabled = false;
+
+    confirmBtn.innerHTML =
+      originalText;
+
   }
-
-  showSuccessModal("แก้ไขการจองสำเร็จ!");
-  
-  // 👇 SCROLL TO TOP
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth"
-  });
 };
 
 

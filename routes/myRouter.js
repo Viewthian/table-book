@@ -1,7 +1,7 @@
 // Manage routing
 require('dotenv').config();
-const express = require('express')
-const router = express.Router()
+const express = require('express');
+const router = express.Router();
 const bcrypt = require("bcrypt");
 const upload = require("../utils/upload");
 
@@ -143,49 +143,105 @@ router.get("/view-village-availability", async (req, res) => {
 //Reseve the view village
 router.post(
   "/reserve-view-village",
+
   (req, res, next) => {
     req.uploadFolder = "view-village";
     next();
   },
+
   upload.array("image", 5),
+
   async (req, res) => {
+
     try {
-      // 🔐 Make sure user is logged in
-      if (!req.session || !req.session.username) {
-        return res.status(401).json({ error: "Unauthorized" });
+
+      // 🔐 Auth check
+      if (
+        !req.session ||
+        !req.session.username
+      ) {
+
+        return res.status(401).json({
+          error: "Unauthorized"
+        });
       }
 
-      const {
-        name,
-        phone,
-        bookingDateTime,
-        amount,
-        transfer,
-        remark,
-        tables
-      } = req.body;
+      // ✅ Parse tables safely
+      let tables = [];
 
-      const booking = new reservationViewVillage({
-        name,
-        phone,
-        bookingDateTime: new Date(bookingDateTime),
-        amount,
-        transfer,
-        remark,
-        createBy: req.session.username, // ✅ FROM SESSION
-        tables: JSON.parse(tables),
-        image: req.files.map(file =>
-          `/uploads/view-village/${file.filename}`
-        )
-      });
+      if (req.body.tables) {
+
+        try {
+
+          tables = JSON.parse(
+            req.body.tables
+          );
+
+        } catch (err) {
+
+          return res.status(400).json({
+            error: "Invalid tables data"
+          });
+        }
+      }
+
+      // ✅ Cloudinary URLs from multer
+      const imageUrls =
+        req.files?.map(
+          file => file.path
+        ) || [];
+
+      // ✅ Create booking
+      const booking =
+        new reservationViewVillage({
+
+          name:
+            req.body.name?.trim(),
+
+          phone:
+            req.body.phone?.trim(),
+
+          bookingDateTime:
+            new Date(
+              req.body.bookingDateTime
+            ),
+
+          amount:
+            Number(req.body.amount),
+
+          transfer:
+            Number(req.body.transfer),
+
+          remark:
+            req.body.remark?.trim(),
+
+          createBy:
+            req.session.username,
+
+          tables,
+
+          image: imageUrls
+        });
 
       await booking.save();
 
-      res.json({ success: true });
+      res.json({
+        success: true,
+        booking
+      });
 
     } catch (err) {
-      console.error(err);
-      res.status(400).json({ error: err.message });
+
+      console.error(
+        "Reserve View Village Error:",
+        err
+      );
+
+      res.status(500).json({
+        error:
+          err.message ||
+          "Internal Server Error"
+      });
     }
   }
 );
@@ -574,101 +630,178 @@ router.get("/view-village-export-excel", async (req, res) => {
 
 //EDIT RESERVATION
 router.get("/edit-booking-view-village/:id", async (req, res) => {
+
   try {
+
     if (!req.session || !req.session.username) {
       return res.status(401).render("login");
     }
 
-    const booking = await reservationViewVillage.findById(req.params.id).lean();
+    const booking =
+      await reservationViewVillage
+        .findById(req.params.id)
+        .lean();
 
     if (!booking) {
-      return res.status(404).send("Booking not found");
+      return res
+        .status(404)
+        .send("Booking not found");
     }
 
     res.render("edit-booking-view-village", {
+
       booking,
+
       tables: viewVillageTables,
-      staticElements: viewVillageStaticElements,
-      existingTables: booking.tables, // ✅ IMPORTANT
-      image: req.file ? `/uploads/view-village/${req.file.filename}` : null,
-      username: req.session.username,
-      isAdmin: req.session.isAdmin,
-      isLogin: req.session.login
+
+      staticElements:
+        viewVillageStaticElements,
+
+      existingTables:
+        booking.tables || [],
+
+      username:
+        req.session.username,
+
+      isAdmin:
+        req.session.isAdmin,
+
+      isLogin:
+        req.session.login
+
     });
 
-
   } catch (err) {
+
     console.error(err);
-    res.status(500).send("Error loading booking");
+
+    res
+      .status(500)
+      .send("Error loading booking");
+
   }
+
 });
 
 
 router.post(
   "/update-view-village/:id",
+
   (req, res, next) => {
     req.uploadFolder = "view-village";
     next();
   },
+
   upload.array("image", 5),
+
   async (req, res) => {
+
     try {
-      // 🔐 Auth check
+
+      // 🔐 Auth
       if (!req.session || !req.session.username) {
-        return res.status(401).json({ error: "Unauthorized" });
+        return res.status(401).json({
+          error: "Unauthorized"
+        });
       }
 
-      const update_id = req.params.id; // ✅ USE PARAM, NOT BODY
+      const update_id = req.params.id;
+
       if (!update_id) {
-        return res.status(400).json({ error: "Missing booking ID" });
+        return res.status(400).json({
+          error: "Missing booking ID"
+        });
       }
 
-      // ✅ Parse tables safely
+      /* ---------------- TABLES ---------------- */
+
       let tables = [];
+
       if (req.body.tables) {
+
         try {
+
           tables = JSON.parse(req.body.tables);
-        } catch (e) {
-          return res.status(400).json({ error: "Invalid tables data" });
+
+        } catch (err) {
+
+          return res.status(400).json({
+            error: "Invalid tables data"
+          });
+
         }
       }
 
+      /* ---------------- UPDATE DATA ---------------- */
+
       const updatedData = {
+
         name: req.body.name,
+
         phone: req.body.phone,
-        bookingDateTime: new Date(req.body.bookingDateTime),
+
+        bookingDateTime:
+          new Date(req.body.bookingDateTime),
+
         amount: Number(req.body.amount),
+
         transfer: Number(req.body.transfer),
+
         remark: req.body.remark,
+
         createBy: req.session.username,
+
         tables
+
       };
 
-      // ✅ Only overwrite image if new one uploaded
+      /* ---------------- MULTIPLE IMAGES ---------------- */
+
       if (req.files && req.files.length > 0) {
 
-        updatedData.image = req.files.map(file =>
-          `/uploads/view-village/${file.filename}`
+        updatedData.image =
+          req.files.map(file => file.path);
+
+      }
+
+      /* ---------------- UPDATE DB ---------------- */
+
+      const updated =
+        await reservationViewVillage.findByIdAndUpdate(
+
+          update_id,
+
+          updatedData,
+
+          {
+            returnDocument: "after"
+          }
+
         );
 
-      }
-
-      const updated = await reservationViewVillage.findByIdAndUpdate(
-        update_id,
-        updatedData,
-        { returnDocument: "after" }
-      );
-
       if (!updated) {
-        return res.status(404).json({ error: "Reservation not found" });
+
+        return res.status(404).json({
+          error: "Reservation not found"
+        });
+
       }
 
-      res.json({ success: true, data: updated });
+      res.json({
+        success: true,
+        data: updated
+      });
 
     } catch (err) {
+
       console.error(err);
-      res.status(500).json({ error: err.message });
+
+      res.status(500).json({
+        error: err.message
+      });
+
     }
+
   }
 );
 
@@ -814,6 +947,16 @@ router.post("/booking/view-bar-checkin/:id", async (req, res) => {
   }
 });
 
+router.get("/delete-viewbar-booking/:id", async (req, res) => {
+    try {
+        await Reservation.findByIdAndDelete(req.params.id);
+        res.redirect('/viewbar-booking-list');
+    } catch (err) {
+        console.error("Error deleting booking:", err);
+        res.status(500).send("Something went wrong");
+    }
+});
+
 router.get("/viewbar-book", (req, res) => {
   if (!req.session.login) {
     return res.render("login");
@@ -862,55 +1005,113 @@ router.get("/availability", async (req, res) => {
 //Reseve the view bar
 router.post(
   "/reserve",
+
   (req, res, next) => {
     req.uploadFolder = "viewbar";
     next();
   },
+
   upload.array("image", 5),
+
   async (req, res) => {
+
     try {
-      // 🔐 Make sure user is logged in
-      if (!req.session || !req.session.username) {
-        return res.status(401).json({ error: "Unauthorized" });
+
+      // 🔐 Auth check
+      if (
+        !req.session ||
+        !req.session.username
+      ) {
+
+        return res.status(401).json({
+          error: "Unauthorized"
+        });
       }
 
-      const {
-        name,
-        phone,
-        bookingDateTime,
-        amount,
-        transfer,
-        remark,
-        tables
-      } = req.body;
+      // ✅ Parse tables safely
+      let tables = [];
 
-      const booking = new Reservation({
-        name,
-        phone,
-        bookingDateTime: new Date(bookingDateTime),
-        amount,
-        transfer,
-        remark,
-        createBy: req.session.username, // ✅ FROM SESSION
-        tables: JSON.parse(tables),
-        image: req.files.map(file =>
-          `/uploads/viewbar/${file.filename}`
-        )
-      });
+      if (req.body.tables) {
+
+        try {
+
+          tables = JSON.parse(
+            req.body.tables
+          );
+
+        } catch (err) {
+
+          return res.status(400).json({
+            error: "Invalid tables data"
+          });
+        }
+      }
+
+      // ✅ Cloudinary URLs from multer
+      const imageUrls =
+        req.files?.map(
+          file => file.path
+        ) || [];
+
+      // ✅ Create booking
+      const booking =
+        new Reservation({
+
+          name:
+            req.body.name?.trim(),
+
+          phone:
+            req.body.phone?.trim(),
+
+          bookingDateTime:
+            new Date(
+              req.body.bookingDateTime
+            ),
+
+          amount:
+            Number(req.body.amount),
+
+          transfer:
+            Number(req.body.transfer),
+
+          remark:
+            req.body.remark?.trim(),
+
+          createBy:
+            req.session.username,
+
+          tables,
+
+          image: imageUrls
+        });
 
       await booking.save();
 
-      res.json({ success: true });
+      res.json({
+        success: true,
+        booking
+      });
 
     } catch (err) {
-      console.error(err);
-      res.status(400).json({ error: err.message });
+
+      console.error(
+        "Reserve The View Bar Error:",
+        err
+      );
+
+      res.status(500).json({
+        error:
+          err.message ||
+          "Internal Server Error"
+      });
     }
   }
 );
 
+
 //EDIT RESERVATION
 router.get("/edit-booking-viewbar/:id", async (req, res) => {
+
   try {
 
     if (!req.session || !req.session.username) {
@@ -918,100 +1119,169 @@ router.get("/edit-booking-viewbar/:id", async (req, res) => {
     }
 
     const booking =
-      await Reservation.findById(req.params.id).lean();
+      await Reservation
+        .findById(req.params.id)
+        .lean();
 
     if (!booking) {
-      return res.status(404).send("Booking not found");
+      return res
+        .status(404)
+        .send("Booking not found");
     }
 
     res.render("edit-booking-viewbar", {
+
       booking,
-      tables,
-      staticElements,
+
+      tables: tables,
+
+      staticElements:
+        staticElements,
 
       existingTables:
-        Array.isArray(booking.tables)
-          ? booking.tables
-          : [],
+        booking.tables || [],
 
-      username: req.session.username,
-      isAdmin: req.session.isAdmin,
-      isLogin: req.session.login
+      username:
+        req.session.username,
+
+      isAdmin:
+        req.session.isAdmin,
+
+      isLogin:
+        req.session.login
+
     });
 
   } catch (err) {
 
     console.error(err);
 
-    res.status(500).send("Error loading booking");
+    res
+      .status(500)
+      .send("Error loading booking");
+
   }
+
 });
 
 router.post(
   "/update-viewbar/:id",
+
   (req, res, next) => {
     req.uploadFolder = "viewbar";
     next();
   },
+
   upload.array("image", 5),
+
   async (req, res) => {
+
     try {
-      // 🔐 Auth check
+
+      // 🔐 Auth
       if (!req.session || !req.session.username) {
-        return res.status(401).json({ error: "Unauthorized" });
+        return res.status(401).json({
+          error: "Unauthorized"
+        });
       }
 
-      const update_id = req.params.id; // ✅ USE PARAM, NOT BODY
+      const update_id = req.params.id;
+
       if (!update_id) {
-        return res.status(400).json({ error: "Missing booking ID" });
+        return res.status(400).json({
+          error: "Missing booking ID"
+        });
       }
 
-      // ✅ Parse tables safely
+      /* ---------------- TABLES ---------------- */
+
       let tables = [];
+
       if (req.body.tables) {
+
         try {
+
           tables = JSON.parse(req.body.tables);
-        } catch (e) {
-          return res.status(400).json({ error: "Invalid tables data" });
+
+        } catch (err) {
+
+          return res.status(400).json({
+            error: "Invalid tables data"
+          });
+
         }
       }
 
+      /* ---------------- UPDATE DATA ---------------- */
+
       const updatedData = {
+
         name: req.body.name,
+
         phone: req.body.phone,
-        bookingDateTime: new Date(req.body.bookingDateTime),
+
+        bookingDateTime:
+          new Date(req.body.bookingDateTime),
+
         amount: Number(req.body.amount),
+
         transfer: Number(req.body.transfer),
+
         remark: req.body.remark,
+
         createBy: req.session.username,
+
         tables
+
       };
 
-      // ✅ Only overwrite image if new one uploaded
+      /* ---------------- MULTIPLE IMAGES ---------------- */
+
       if (req.files && req.files.length > 0) {
 
-        updatedData.image = req.files.map(file =>
-          `/uploads/viewbar/${file.filename}`
+        updatedData.image =
+          req.files.map(file => file.path);
+
+      }
+
+      /* ---------------- UPDATE DB ---------------- */
+
+      const updated =
+        await Reservation.findByIdAndUpdate(
+
+          update_id,
+
+          updatedData,
+
+          {
+            returnDocument: "after"
+          }
+
         );
 
-      }
-
-      const updated = await Reservation.findByIdAndUpdate(
-        update_id,
-        updatedData,
-        { returnDocument: "after" }
-      );
-
       if (!updated) {
-        return res.status(404).json({ error: "Reservation not found" });
+
+        return res.status(404).json({
+          error: "Reservation not found"
+        });
+
       }
 
-      res.json({ success: true, data: updated });
+      res.json({
+        success: true,
+        data: updated
+      });
 
     } catch (err) {
+
       console.error(err);
-      res.status(500).json({ error: err.message });
+
+      res.status(500).json({
+        error: err.message
+      });
+
     }
+
   }
 );
 
@@ -1295,49 +1565,105 @@ router.get("/stereo-availability", async (req, res) => {
 //Reseve stereo
 router.post(
   "/reserve-stereo",
+
   (req, res, next) => {
     req.uploadFolder = "stereobar";
     next();
   },
+
   upload.array("image", 5),
+
   async (req, res) => {
+
     try {
-      // 🔐 Make sure user is logged in
-      if (!req.session || !req.session.username) {
-        return res.status(401).json({ error: "Unauthorized" });
+
+      // 🔐 Auth check
+      if (
+        !req.session ||
+        !req.session.username
+      ) {
+
+        return res.status(401).json({
+          error: "Unauthorized"
+        });
       }
 
-      const {
-        name,
-        phone,
-        bookingDateTime,
-        amount,
-        transfer,
-        remark,
-        tables
-      } = req.body;
+      // ✅ Parse tables safely
+      let tables = [];
 
-      const booking = new reservationStereo({
-        name,
-        phone,
-        bookingDateTime: new Date(bookingDateTime),
-        amount,
-        transfer,
-        remark,
-        createBy: req.session.username, // ✅ FROM SESSION
-        tables: JSON.parse(tables),
-        image: req.files.map(file =>
-          `/uploads/stereobar/${file.filename}`
-        )
-      });
+      if (req.body.tables) {
+
+        try {
+
+          tables = JSON.parse(
+            req.body.tables
+          );
+
+        } catch (err) {
+
+          return res.status(400).json({
+            error: "Invalid tables data"
+          });
+        }
+      }
+
+      // ✅ Cloudinary URLs from multer
+      const imageUrls =
+        req.files?.map(
+          file => file.path
+        ) || [];
+
+      // ✅ Create booking
+      const booking =
+        new reservationStereo({
+
+          name:
+            req.body.name?.trim(),
+
+          phone:
+            req.body.phone?.trim(),
+
+          bookingDateTime:
+            new Date(
+              req.body.bookingDateTime
+            ),
+
+          amount:
+            Number(req.body.amount),
+
+          transfer:
+            Number(req.body.transfer),
+
+          remark:
+            req.body.remark?.trim(),
+
+          createBy:
+            req.session.username,
+
+          tables,
+
+          image: imageUrls
+        });
 
       await booking.save();
 
-      res.json({ success: true });
+      res.json({
+        success: true,
+        booking
+      });
 
     } catch (err) {
-      console.error(err);
-      res.status(400).json({ error: err.message });
+
+      console.error(
+        "Reserve The Stereo Bar Error:",
+        err
+      );
+
+      res.status(500).json({
+        error:
+          err.message ||
+          "Internal Server Error"
+      });
     }
   }
 );
@@ -1721,101 +2047,176 @@ router.get("/stereo-export-excel", async (req, res) => {
 
 //EDIT RESERVATION
 router.get("/edit-booking-stereobar/:id", async (req, res) => {
+
   try {
+
     if (!req.session || !req.session.username) {
       return res.status(401).render("login");
     }
 
-    const booking = await reservationStereo.findById(req.params.id).lean();
+    const booking =
+      await reservationStereo
+        .findById(req.params.id)
+        .lean();
 
     if (!booking) {
-      return res.status(404).send("Booking not found");
+      return res
+        .status(404)
+        .send("Booking not found");
     }
 
     res.render("edit-booking-stereobar", {
+
       booking,
+
       tables: stereoTables,
-      staticElements: stereoStaticElements,
-      existingTables: Array.isArray(booking.tables)
-        ? booking.tables
-        : [],
-      image: req.file ? `/uploads/stereobar/${req.file.filename}` : null,
-      username: req.session.username,
-      isAdmin: req.session.isAdmin,
-      isLogin: req.session.login
+
+      staticElements:
+        stereoStaticElements,
+
+      existingTables:
+        booking.tables || [],
+
+      username:
+        req.session.username,
+
+      isAdmin:
+        req.session.isAdmin,
+
+      isLogin:
+        req.session.login
+
     });
 
-
   } catch (err) {
+
     console.error(err);
-    res.status(500).send("Error loading booking");
+
+    res
+      .status(500)
+      .send("Error loading booking");
+
   }
+
 });
+
 
 router.post(
   "/update-stereobar/:id",
+
   (req, res, next) => {
     req.uploadFolder = "stereobar";
     next();
   },
+
   upload.array("image", 5),
+
   async (req, res) => {
+
     try {
-      // 🔐 Auth check
+
+      // 🔐 Auth
       if (!req.session || !req.session.username) {
-        return res.status(401).json({ error: "Unauthorized" });
+        return res.status(401).json({
+          error: "Unauthorized"
+        });
       }
 
-      const update_id = req.params.id; // ✅ USE PARAM, NOT BODY
+      const update_id = req.params.id;
+
       if (!update_id) {
-        return res.status(400).json({ error: "Missing booking ID" });
+        return res.status(400).json({
+          error: "Missing booking ID"
+        });
       }
 
-      // ✅ Parse tables safely
+      /* ---------------- TABLES ---------------- */
+
       let tables = [];
+
       if (req.body.tables) {
+
         try {
+
           tables = JSON.parse(req.body.tables);
-        } catch (e) {
-          return res.status(400).json({ error: "Invalid tables data" });
+
+        } catch (err) {
+
+          return res.status(400).json({
+            error: "Invalid tables data"
+          });
+
         }
       }
 
+      /* ---------------- UPDATE DATA ---------------- */
+
       const updatedData = {
+
         name: req.body.name,
+
         phone: req.body.phone,
-        bookingDateTime: new Date(req.body.bookingDateTime),
+
+        bookingDateTime:
+          new Date(req.body.bookingDateTime),
+
         amount: Number(req.body.amount),
+
         transfer: Number(req.body.transfer),
+
         remark: req.body.remark,
+
         createBy: req.session.username,
+
         tables
+
       };
 
-      // ✅ Only overwrite image if new one uploaded
+      /* ---------------- MULTIPLE IMAGES ---------------- */
+
       if (req.files && req.files.length > 0) {
 
-        updatedData.image = req.files.map(file =>
-          `/uploads/stereobar/${file.filename}`
+        updatedData.image =
+          req.files.map(file => file.path);
+
+      }
+
+      /* ---------------- UPDATE DB ---------------- */
+
+      const updated =
+        await reservationStereo.findByIdAndUpdate(
+
+          update_id,
+
+          updatedData,
+
+          {
+            returnDocument: "after"
+          }
+
         );
 
-      }
-
-      const updated = await reservationStereo.findByIdAndUpdate(
-        update_id,
-        updatedData,
-        { returnDocument: "after" }
-      );
-
       if (!updated) {
-        return res.status(404).json({ error: "Reservation not found" });
+
+        return res.status(404).json({
+          error: "Reservation not found"
+        });
+
       }
 
-      res.json({ success: true, data: updated });
+      res.json({
+        success: true,
+        data: updated
+      });
 
     } catch (err) {
+
       console.error(err);
-      res.status(500).json({ error: err.message });
+
+      res.status(500).json({
+        error: err.message
+      });
+
     }
   }
 );
@@ -1870,49 +2271,105 @@ router.get("/coolly-availability", async (req, res) => {
 //Reseve coolly
 router.post(
   "/reserve-coolly",
+
   (req, res, next) => {
     req.uploadFolder = "coolly";
     next();
   },
+
   upload.array("image", 5),
+
   async (req, res) => {
+
     try {
-      // 🔐 Make sure user is logged in
-      if (!req.session || !req.session.username) {
-        return res.status(401).json({ error: "Unauthorized" });
+
+      // 🔐 Auth check
+      if (
+        !req.session ||
+        !req.session.username
+      ) {
+
+        return res.status(401).json({
+          error: "Unauthorized"
+        });
       }
 
-      const {
-        name,
-        phone,
-        bookingDateTime,
-        amount,
-        transfer,
-        remark,
-        tables
-      } = req.body;
+      // ✅ Parse tables safely
+      let tables = [];
 
-      const booking = new reservationCoolly({
-        name,
-        phone,
-        bookingDateTime: new Date(bookingDateTime),
-        amount,
-        transfer,
-        remark,
-        createBy: req.session.username, // ✅ FROM SESSION
-        tables: JSON.parse(tables),
-        image: req.files.map(file =>
-          `/uploads/coolly/${file.filename}`
-        )
-      });
+      if (req.body.tables) {
+
+        try {
+
+          tables = JSON.parse(
+            req.body.tables
+          );
+
+        } catch (err) {
+
+          return res.status(400).json({
+            error: "Invalid tables data"
+          });
+        }
+      }
+
+      // ✅ Cloudinary URLs from multer
+      const imageUrls =
+        req.files?.map(
+          file => file.path
+        ) || [];
+
+      // ✅ Create booking
+      const booking =
+        new reservationCoolly({
+
+          name:
+            req.body.name?.trim(),
+
+          phone:
+            req.body.phone?.trim(),
+
+          bookingDateTime:
+            new Date(
+              req.body.bookingDateTime
+            ),
+
+          amount:
+            Number(req.body.amount),
+
+          transfer:
+            Number(req.body.transfer),
+
+          remark:
+            req.body.remark?.trim(),
+
+          createBy:
+            req.session.username,
+
+          tables,
+
+          image: imageUrls
+        });
 
       await booking.save();
 
-      res.json({ success: true });
+      res.json({
+        success: true,
+        booking
+      });
 
     } catch (err) {
-      console.error(err);
-      res.status(400).json({ error: err.message });
+
+      console.error(
+        "Reserve Coolly Chef Error:",
+        err
+      );
+
+      res.status(500).json({
+        error:
+          err.message ||
+          "Internal Server Error"
+      });
     }
   }
 );
@@ -2296,102 +2753,177 @@ router.get("/coolly-export-excel", async (req, res) => {
 
 //EDIT RESERVATION
 router.get("/edit-booking-coolly/:id", async (req, res) => {
+
   try {
+
     if (!req.session || !req.session.username) {
       return res.status(401).render("login");
     }
 
-    const booking = await reservationCoolly.findById(req.params.id).lean();
+    const booking =
+      await reservationCoolly
+        .findById(req.params.id)
+        .lean();
 
     if (!booking) {
-      return res.status(404).send("Booking not found");
+      return res
+        .status(404)
+        .send("Booking not found");
     }
 
     res.render("edit-booking-coolly", {
+
       booking,
+
       tables: coollyTables,
-      staticElements: coollyStaticElements,
-      existingTables: Array.isArray(booking.tables)
-        ? booking.tables
-        : [],
-      image: req.file ? `/uploads/coolly/${req.file.filename}` : null,
-      username: req.session.username,
-      isAdmin: req.session.isAdmin,
-      isLogin: req.session.login
+
+      staticElements:
+        coollyStaticElements,
+
+      existingTables:
+        booking.tables || [],
+
+      username:
+        req.session.username,
+
+      isAdmin:
+        req.session.isAdmin,
+
+      isLogin:
+        req.session.login
+
     });
 
-
   } catch (err) {
+
     console.error(err);
-    res.status(500).send("Error loading booking");
+
+    res
+      .status(500)
+      .send("Error loading booking");
+
   }
+
 });
 
 router.post(
   "/update-coolly/:id",
+
   (req, res, next) => {
     req.uploadFolder = "coolly";
     next();
   },
+
   upload.array("image", 5),
+
   async (req, res) => {
+
     try {
-      // 🔐 Auth check
+
+      // 🔐 Auth
       if (!req.session || !req.session.username) {
-        return res.status(401).json({ error: "Unauthorized" });
+        return res.status(401).json({
+          error: "Unauthorized"
+        });
       }
 
-      const update_id = req.params.id; // ✅ USE PARAM, NOT BODY
+      const update_id = req.params.id;
+
       if (!update_id) {
-        return res.status(400).json({ error: "Missing booking ID" });
+        return res.status(400).json({
+          error: "Missing booking ID"
+        });
       }
 
-      // ✅ Parse tables safely
+      /* ---------------- TABLES ---------------- */
+
       let tables = [];
+
       if (req.body.tables) {
+
         try {
+
           tables = JSON.parse(req.body.tables);
-        } catch (e) {
-          return res.status(400).json({ error: "Invalid tables data" });
+
+        } catch (err) {
+
+          return res.status(400).json({
+            error: "Invalid tables data"
+          });
+
         }
       }
 
+      /* ---------------- UPDATE DATA ---------------- */
+
       const updatedData = {
+
         name: req.body.name,
+
         phone: req.body.phone,
-        bookingDateTime: new Date(req.body.bookingDateTime),
+
+        bookingDateTime:
+          new Date(req.body.bookingDateTime),
+
         amount: Number(req.body.amount),
+
         transfer: Number(req.body.transfer),
+
         remark: req.body.remark,
+
         createBy: req.session.username,
+
         tables
+
       };
 
-      // ✅ Only overwrite image if new one uploaded
+      /* ---------------- MULTIPLE IMAGES ---------------- */
+
       if (req.files && req.files.length > 0) {
 
-        updatedData.image = req.files.map(file =>
-          `/uploads/coolly/${file.filename}`
+        updatedData.image =
+          req.files.map(file => file.path);
+
+      }
+
+      /* ---------------- UPDATE DB ---------------- */
+
+      const updated =
+        await reservationCoolly.findByIdAndUpdate(
+
+          update_id,
+
+          updatedData,
+
+          {
+            returnDocument: "after"
+          }
+
         );
 
-      }
-
-      const updated = await reservationCoolly.findByIdAndUpdate(
-        update_id,
-        updatedData,
-        { returnDocument: "after" }
-      );
-
       if (!updated) {
-        return res.status(404).json({ error: "Reservation not found" });
+
+        return res.status(404).json({
+          error: "Reservation not found"
+        });
+
       }
 
-      res.json({ success: true, data: updated });
+      res.json({
+        success: true,
+        data: updated
+      });
 
     } catch (err) {
+
       console.error(err);
-      res.status(500).json({ error: err.message });
+
+      res.status(500).json({
+        error: err.message
+      });
+
     }
+
   }
 );
 

@@ -11,7 +11,6 @@ const app = express()
 const PORT = process.env.PORT || 3000;
 
 
-
 app.set('views', path.join(__dirname,'views'))      //บอก app.js ให้ไป render content ที่ folder views
 app.set('view engine', 'ejs')     //ใช้ ejs เป็น template ในการแทรก content ใน html
 // app.use(express.urlencoded({extended:false}))     //ใช้กับ post method เพื่อ encode ข้อมูลเพื่อส่งต่อไปยัง router

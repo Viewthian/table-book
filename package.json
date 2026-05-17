@@ -20,6 +20,7 @@
   "homepage": "https://github.com/Bond-z/table-book#readme",
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "cloudinary": "^1.41.3",
     "connect-flash-plus": "^0.2.1",
     "cookie-parser": "^1.4.7",
     "date-fns": "^4.1.0",
@@ -35,6 +36,7 @@
     "moment-timezone": "^0.6.0",
     "mongoose": "^9.0.0",
     "multer": "^2.0.2",
+    "multer-storage-cloudinary": "^4.0.0",
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.13",
     "resend": "^6.9.3",

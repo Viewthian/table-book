@@ -202,58 +202,152 @@ slipInput.addEventListener("change", () => {
 
 /* -------------------- CONFIRM BOOKING -------------------- */
 confirmBtn.onclick = async () => {
-  const name = document.getElementById("name").value.trim();
-  const phone = document.getElementById("phone").value.trim();
-  const bookingTime = document.getElementById("timePicker").value;
-  const amount = document.getElementById("amount").value;
-  const transfer = document.getElementById("transfer").value;
-  const remark = document.getElementById("remark").value;
+
+  const name =
+    document.getElementById("name")
+    .value.trim();
+
+  const phone =
+    document.getElementById("phone")
+    .value.trim();
+
+  const bookingTime =
+    document.getElementById("timePicker")
+    .value;
+
+  const amount =
+    document.getElementById("amount")
+    .value;
+
+  const transfer =
+    document.getElementById("transfer")
+    .value;
+
+  const remark =
+    document.getElementById("remark")
+    .value;
+
   const date = datePicker.value;
 
-  if (!name || !phone || !bookingTime || !amount || transfer === "" || selectedTables.size === 0) {
-    showErrorModal("กรุณากรอกข้อมูลให้ครบถ้วน");
+  if (
+    !name ||
+    !phone ||
+    !bookingTime ||
+    !amount ||
+    transfer === "" ||
+    selectedTables.size === 0
+  ) {
+
+    showErrorModal(
+      "กรุณากรอกข้อมูลให้ครบถ้วน"
+    );
+
     return;
   }
 
-  const bookingDateTime = new Date(`${date}T${bookingTime}:00`);
-  if (isNaN(bookingDateTime.getTime())) {
-    showErrorModal("Invalid date/time");
+  const bookingDateTime =
+    new Date(`${date}T${bookingTime}:00`);
+
+  if (
+    isNaN(bookingDateTime.getTime())
+  ) {
+
+    showErrorModal(
+      "Invalid date/time"
+    );
+
     return;
   }
 
-  // ✅ FormData for image upload
+  /* ---------------- LOADING START ---------------- */
+
+  confirmBtn.disabled = true;
+
+  const originalText =
+    confirmBtn.innerHTML;
+
+  confirmBtn.innerHTML =
+    "⏳ Processing...";
+
+  /* ---------------- FORM DATA ---------------- */
+
   const formData = new FormData();
+
   formData.append("name", name);
+
   formData.append("phone", phone);
-  formData.append("bookingDateTime", bookingDateTime.toISOString());
+
+  formData.append(
+    "bookingDateTime",
+    bookingDateTime.toISOString()
+  );
+
   formData.append("amount", amount);
+
   formData.append("transfer", transfer);
+
   formData.append("remark", remark);
-  formData.append("tables", JSON.stringify([...selectedTables]));
 
-  Array.from(slipInput.files).forEach(file => {
-    formData.append("image", file);
-  });
+  formData.append(
+    "tables",
+    JSON.stringify([...selectedTables])
+  );
 
-  const res = await fetch("/reserve-view-village", {
-    method: "POST",
-    body: formData
-  });
+  Array.from(slipInput.files)
+    .forEach(file => {
 
-  const data = await res.json();
+      formData.append("image", file);
 
-  if (!res.ok) {
-    showErrorModal(data.error || "Reservation failed");
-    return;
+    });
+
+  try {
+
+    const res = await fetch(
+      "/reserve-view-village",
+      {
+        method: "POST",
+        body: formData
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+
+      showErrorModal(
+        data.error ||
+        "Reservation failed"
+      );
+
+      return;
+    }
+
+    showSuccessModal();
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+
+  } catch (err) {
+
+    console.error(err);
+
+    showErrorModal(
+      "Something went wrong"
+    );
+
+  } finally {
+
+    /* ---------------- LOADING END ---------------- */
+
+    confirmBtn.disabled = false;
+
+    confirmBtn.innerHTML =
+      originalText;
+
   }
 
-  showSuccessModal();
-
-  // 👇 SCROLL TO TOP
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth"
-  });
 };
 
 

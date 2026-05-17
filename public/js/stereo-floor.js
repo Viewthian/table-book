@@ -219,7 +219,17 @@ confirmBtn.onclick = async () => {
     return;
   }
 
-  // ✅ FormData for image upload
+  /* ---------------- LOADING START ---------------- */
+
+  confirmBtn.disabled = true;
+
+  const originalText =
+    confirmBtn.innerHTML;
+
+  confirmBtn.innerHTML =
+    "⏳ Processing...";
+
+  /* ---------------- FORM DATA ---------------- */
   const formData = new FormData();
   formData.append("name", name);
   formData.append("phone", phone);
@@ -232,6 +242,8 @@ confirmBtn.onclick = async () => {
   Array.from(slipInput.files).forEach(file => {
     formData.append("image", file);
   });
+
+  try {
 
   const res = await fetch("/reserve-stereo", {
     method: "POST",
@@ -252,6 +264,25 @@ confirmBtn.onclick = async () => {
     top: 0,
     behavior: "smooth"
   });
+
+  } catch (err) {
+
+    console.error(err);
+
+    showErrorModal(
+      "Something went wrong"
+    );
+
+  } finally {
+
+    /* ---------------- LOADING END ---------------- */
+
+    confirmBtn.disabled = false;
+
+    confirmBtn.innerHTML =
+      originalText;
+
+  }
 };
 
 
