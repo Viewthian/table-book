@@ -21,13 +21,13 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// console.log("CLOUDINARY:", {
-//   cloud: process.env.CLOUDINARY_CLOUD_NAME,
-//   key: process.env.CLOUDINARY_API_KEY,
-//   secret: process.env.CLOUDINARY_API_SECRET
-//     ? "exists"
-//     : "missing"
-// });
+console.log("CLOUDINARY:", {
+  cloud: process.env.CLOUDINARY_CLOUD_NAME,
+  key: process.env.CLOUDINARY_API_KEY,
+  secret: process.env.CLOUDINARY_API_SECRET
+    ? "exists"
+    : "missing"
+});
 
 /* ---------------- STORAGE ---------------- */
 
