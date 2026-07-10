@@ -253,7 +253,7 @@ router.get("/view-village-booking-list", async (req, res) => {
   }
 
   try {
-    const filter = req.query.filter || "today";
+    const filter = req.query.filter || "all";
     const sortParam = req.query.sort || "oldest";
     const limit = Number(req.query.limit) || 10;
     const page = Number(req.query.page) || 1;
@@ -261,18 +261,20 @@ router.get("/view-village-booking-list", async (req, res) => {
 
     const now = new Date();
 
-    const search = req.query.search || "";
+    const search = (req.query.search || "").trim();
 
-    // 🔹 NEW: selected date (default = today)
-    const selectedDate =
-      req.query.date || new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    // 🔹 selected date from the date picker (empty = not applied)
+    const selectedDate = req.query.date || "";
 
     let matchStage = {};
 
     if (search) {
+      // escape regex special chars so a raw search string can't break the query
+      const safe = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
       matchStage.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { phone: { $regex: search, $options: "i" } }
+        { name: { $regex: safe, $options: "i" } },
+        { phone: { $regex: safe, $options: "i" } }
       ];
     }
 
@@ -512,23 +514,38 @@ router.get("/view-village-dashboard", async (req, res) => {
 router.get("/view-village-export-excel", async (req, res) => {
   try {
 
-    const { date } = req.query;
+    // Export works independently of the table filters.
+    // Accepts a date range (from/to); falls back to a single `date` for
+    // backward compatibility.
+    const { date, from, to, status } = req.query;
 
-    if (!date) {
-      return res.status(400).send("Date is required");
+    const startDate = from || to || date;
+    const endDate = to || from || date;
+
+    if (!startDate || !endDate) {
+      return res.status(400).send("Date range is required");
     }
 
-    // Start and end of selected day
-    const start = new Date(date);
-    start.setHours(0, 0, 0, 0);
+    // Local-day boundaries (avoids the UTC shift of new Date("YYYY-MM-DD"))
+    const start = new Date(`${startDate}T00:00:00`);
+    const end = new Date(`${endDate}T23:59:59.999`);
 
-    const end = new Date(date);
-    end.setHours(23, 59, 59, 999);
+    if (isNaN(start) || isNaN(end) || start > end) {
+      return res.status(400).send("Invalid date range");
+    }
+
+    // Build query
+    const query = {
+      bookingDateTime: { $gte: start, $lte: end }
+    };
+
+    // Optional status filter (booked / checkin / cancelled)
+    if (status && status !== "all") {
+      query.status = status;
+    }
 
     // Fetch bookings
-    const bookings = await reservationViewVillage.find({
-      bookingDateTime: { $gte: start, $lte: end }
-    });
+    const bookings = await reservationViewVillage.find(query);
 
     // Sort by table number (T1 -> T18 correctly)
     bookings.sort((a, b) => {
@@ -615,9 +632,14 @@ router.get("/view-village-export-excel", async (req, res) => {
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     );
 
+    const fileLabel =
+      startDate === endDate
+        ? startDate
+        : `${startDate}_to_${endDate}`;
+
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename=view-village-${date}.xlsx`
+      `attachment; filename=view-village-${fileLabel}.xlsx`
     );
 
     res.send(buffer);
