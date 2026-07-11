@@ -388,7 +388,7 @@
           class="px-3 py-2 rounded-lg border w-60 focus:ring focus:ring-blue-200"
         />
 
-        <input type="hidden" name="page" value="<%= currentPage %>">
+        <input type="hidden" name="page" value="1">
 
         <div class="filter-item">
           <label>Date</label>
@@ -542,36 +542,72 @@
 
             
 
-            <div>
+            <%
+              // Preserve every active filter when paging (search, date, etc.)
+              const pageQuery = (p) => {
+                const params = new URLSearchParams({
+                  page: p,
+                  limit: limit,
+                  sort: sort,
+                  filter: filter
+                });
+                if (search) params.set("search", search);
+                if (selectedDate) params.set("date", selectedDate);
+                return "?" + params.toString();
+              };
+            %>
+
+            <div class="pagination">
               <% if (currentPage > 1) { %>
-                <a href="?page=<%= currentPage - 1 %>&limit=<%= limit %>&sort=<%= sort %>&filter=<%= filter %>">Prev</a>
+                <a href="<%= pageQuery(currentPage - 1) %>">Prev</a>
               <% } %>
 
               Page <%= currentPage %> of <%= totalPages %>
 
               <% if (currentPage < totalPages) { %>
-                <a href="?page=<%= currentPage + 1 %>&limit=<%= limit %>&sort=<%= sort %>&filter=<%= filter %>">Next</a>
+                <a href="<%= pageQuery(currentPage + 1) %>">Next</a>
               <% } %>
             </div>
 
 
+            <!-- Export runs independently of the table above:
+                 it queries the DB directly for the chosen date range. -->
             <form style="margin-top: 15px;" class="filter-bar" action="/stereo-export-excel" method="GET">
 
               <div class="filter-item">
-                <label>เลือกวันที่:</label>
-
-                <input 
+                <label>ส่งออก Excel — จากวันที่:</label>
+                <input
                   type="date"
-                  id="exportDate"
-                  name="date"
+                  id="exportFrom"
+                  name="from"
                   class="form-control"
                   required
                 >
+              </div>
 
+              <div class="filter-item">
+                <label>ถึงวันที่:</label>
+                <input
+                  type="date"
+                  id="exportTo"
+                  name="to"
+                  class="form-control"
+                  required
+                >
+              </div>
+
+              <div class="filter-item">
+                <label>สถานะ:</label>
+                <select name="status" class="form-control">
+                  <option value="all">ทั้งหมด</option>
+                  <option value="booked">จองแล้ว</option>
+                  <option value="checkin">เช็คอิน</option>
+                  <option value="cancelled">ยกเลิก</option>
+                </select>
               </div>
 
               <div style="text-align: right; margin-top: 22px;">
-                <button type="submit" class="btn btn-success">
+                <button type="submit" class="btn btn-success export-btn">
                   Export Excel
                 </button>
               </div>
@@ -609,70 +645,41 @@
   <!-- End Google Map -->
 
   <script>
-  document.addEventListener("DOMContentLoaded", () => {
-  const rows = [...document.querySelectorAll("tbody tr")];
+    /*
+     * Server-side search with debounced auto-apply.
+     * Typing in the search box re-submits #filterForm (which re-queries the
+     * database), so results stay consistent with pagination, sort and filters
+     * across ALL bookings — not just the rows on the current page.
+     */
+    document.addEventListener("DOMContentLoaded", () => {
+      const form = document.getElementById("filterForm");
+      const searchInput = document.getElementById("searchBox");
 
-  const searchInput = document.getElementById("searchInput");
-  const dateFilter = document.getElementById("dateFilter");
-  const tbody = document.querySelector("tbody");
+      if (!form || !searchInput) return;
 
-  searchInput.addEventListener("input", filterTable);
-  dateFilter.addEventListener("change", filterTable);
+      let debounceTimer;
 
-  function filterTable() {
-    const search = searchInput.value.toLowerCase();
-    const filter = dateFilter.value;
-    const now = new Date();
+      searchInput.addEventListener("input", () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => form.submit(), 450);
+      });
 
-    rows.forEach(row => {
-      const name = row.dataset.name.toLowerCase();
-      const phone = row.dataset.phone.toLowerCase();
-      const date = new Date(row.dataset.date);
-
-      let matchesSearch = name.includes(search) || phone.includes(search);
-      let matchesFilter = true;
-
-      if (filter === "today") {
-        matchesFilter = date.toDateString() === now.toDateString();
-      } else if (filter === "thisMonth") {
-        matchesFilter =
-          date.getMonth() === now.getMonth() &&
-          date.getFullYear() === now.getFullYear();
-      }
-
-      row.style.display = matchesSearch && matchesFilter ? "" : "none";
-    });
-
-    // Sorting
-    if (filter === "newest") {
-      rows.sort((a, b) => new Date(b.dataset.date) - new Date(a.dataset.date));
-    } else if (filter === "oldest") {
-      rows.sort((a, b) => new Date(a.dataset.date) - new Date(b.dataset.date));
-    }
-
-    tbody.innerHTML = "";
-    rows.forEach(r => tbody.appendChild(r));
-  }
-});
-</script>
-
-  <script>
-    const searchInput = document.getElementById("searchBox");
-    const rows = document.querySelectorAll(".booking-row");
-
-    searchInput.addEventListener("input", function () {
-      const value = this.value.toLowerCase();
-
-      rows.forEach(row => {
-        const name = (row.dataset.name || "").toLowerCase();
-        const phone = (row.dataset.phone || "").toLowerCase();
-
-        if (name.includes(value) || phone.includes(value)) {
-          row.style.display = "";
-        } else {
-          row.style.display = "none";
+      // Submit immediately on Enter (and cancel the pending debounce).
+      searchInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          clearTimeout(debounceTimer);
+          form.submit();
         }
       });
+
+      // After the reload triggered by a search, restore focus and place the
+      // caret at the end so typing can continue naturally.
+      if (searchInput.value) {
+        searchInput.focus();
+        const end = searchInput.value.length;
+        searchInput.setSelectionRange(end, end);
+      }
     });
   </script>
 
@@ -706,8 +713,23 @@
   </script>
 
   <script>
-    const today = new Date().toISOString().split("T")[0];
-    document.getElementById("exportDate").value = today;
+    // Default the export range to today (independent of the table filters).
+    (function () {
+      const today = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD, local
+      const from = document.getElementById("exportFrom");
+      const to = document.getElementById("exportTo");
+
+      if (from) from.value = today;
+      if (to) to.value = today;
+
+      // Keep the range valid: "to" can't be before "from", and vice versa.
+      if (from && to) {
+        from.addEventListener("change", () => { to.min = from.value; });
+        to.addEventListener("change", () => { from.max = to.value; });
+        to.min = from.value;
+        from.max = to.value;
+      }
+    })();
   </script>
 
 
