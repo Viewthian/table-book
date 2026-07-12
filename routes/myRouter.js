@@ -45,40 +45,11 @@ router.get('/login', (req, res) => {
   res.render('login');
 })
 
-//login new version (get username/password from DB)
-router.post("/login", async (req, res) => {
-  const { username, password } = req.body;
-
-  try {
-    const user = await memberTable.findOne({ username });
-
-    if (!user) {
-      return res.render("login", { error: "Invalid username or password" });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch) {
-      return res.render("login", { error: "Invalid username or password" });
-    }
-
-    // Store session
-    req.session.login = true;
-    req.session.userId = user._id;
-    req.session.username = user.username;
-
-    // ✔ Correct admin flag
-    req.session.isAdmin = (user.username === "admin");
-
-    // ✔ Redirect correctly
-    if (req.session.isAdmin) {
-      return res.redirect("/");
-    }
-
-    return res.redirect("/");
-  } catch (err) {
-    console.error(err);
-    return res.render("login", { error: "Something went wrong." });
-  }
+// 🚫 Login is disabled on this deployment — the site has moved.
+// Any POST to /login just re-renders the "we've moved" notice instead of
+// authenticating, so credentials cannot bypass the block.
+router.post("/login", (req, res) => {
+  return res.render("login");
 });
 
 // Go to index page, no idea to provide any contents yet
