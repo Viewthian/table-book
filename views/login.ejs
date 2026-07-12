@@ -1,16 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="shortcut icon" href="images/favicon.png" type="">
-  <title>Login</title>
+  <title>ย้ายเว็บไซต์แล้ว — The View</title>
 
   <style>
     body {
       margin: 0;
       padding: 0;
-      font-family: Arial, sans-serif;
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
       color: #e0e0e0;
 
       /* 🔥 Background Image */
@@ -21,20 +21,24 @@
     /* Dark overlay to improve text contrast */
     .overlay {
       width: 100%;
-      height: 100vh;
+      min-height: 100vh;
       background: rgba(0, 0, 0, 0.6);
       display: flex;
       justify-content: center;
       align-items: center;
+      padding: 20px;
+      box-sizing: border-box;
     }
 
-    .login-box {
-      width: 350px;
-      background: rgba(30, 30, 30, 0.9);
-      padding: 30px;
-      border-radius: 12px;
+    .moved-card {
+      width: 100%;
+      max-width: 440px;
+      background: rgba(30, 30, 30, 0.92);
+      padding: 40px 32px;
+      border-radius: 16px;
       backdrop-filter: blur(6px);
-      box-shadow: 0 0 20px rgba(0,0,0,0.6);
+      box-shadow: 0 0 30px rgba(0,0,0,0.6);
+      text-align: center;
       animation: fadeIn 0.6s ease;
     }
 
@@ -43,86 +47,86 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    .login-box h2 {
-      text-align: center;
-      margin-bottom: 25px;
+    .moved-icon {
+      font-size: 44px;
+      line-height: 1;
+      margin-bottom: 16px;
+    }
+
+    .moved-card h1 {
+      font-size: 24px;
+      margin: 0 0 12px;
       color: #fff;
     }
 
-    .input-group {
-      margin-bottom: 20px;
-    }
-
-    .input-group label {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 14px;
-      color: #bdbdbd;
-    }
-
-    .input-group input {
-      width: 100%;
-      padding: 10px;
-      border: none;
-      border-radius: 6px;
-      background: #292929;
-      color: #fff;
-      font-size: 15px;
-      outline: none;
-    }
-
-    .input-group input:focus {
-      border: 1px solid #4a90e2;
-    }
-
-    button {
-      width: 100%;
-      padding: 12px;
-      border: none;
-      border-radius: 6px;
+    .moved-card p {
       font-size: 16px;
+      line-height: 1.6;
+      color: #cfcfcf;
+      margin: 0 0 28px;
+    }
+
+    .moved-btn {
+      display: inline-block;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 15px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 17px;
+      font-weight: 600;
       background: #4a90e2;
       color: #fff;
+      text-decoration: none;
       cursor: pointer;
-      margin-top: 10px;
+      transition: background 0.2s ease, transform 0.1s ease;
     }
 
-    button:hover {
+    .moved-btn:hover {
       background: #357abd;
     }
 
-    .error {
-      color: #ff6b6b;
-      text-align: center;
-      margin-top: 10px;
+    .moved-btn:active {
+      transform: translateY(1px);
+    }
+
+    .moved-url {
+      display: block;
+      margin-top: 16px;
+      font-size: 13px;
+      color: #9aa4ad;
+      word-break: break-all;
+    }
+
+    .moved-url a {
+      color: #9aa4ad;
+      text-decoration: underline;
     }
   </style>
 </head>
 <body>
 
   <div class="overlay">
-    <div class="login-box">
-      <h2>The View Staffs Login</h2>
+    <div class="moved-card">
+      <div class="moved-icon">🔒</div>
 
-      <form action="/login" method="POST">
+      <h1>ย้ายเว็บไซต์แล้ว</h1>
 
-        <div class="input-group">
-          <label>Username</label>
-          <input type="text" name="username" required>
-        </div>
+      <p>
+        ระบบจองโต๊ะได้ย้ายไปยังที่อยู่ใหม่<br>
+        กรุณาคลิกปุ่มด้านล่างเพื่อไปยังเว็บไซต์ใหม่
+      </p>
 
-        <div class="input-group">
-          <label>Password</label>
-          <input type="password" name="password" required>
-        </div>
+      <a class="moved-btn"
+         href="https://theview-table-book-production-c508.up.railway.app">
+        ไปที่เว็บไซต์ใหม่ &nbsp;&rarr;
+      </a>
 
-        <button type="submit">Login</button>
-
-        <% if (typeof error !== "undefined") { %>
-          <p class="error"><%= error %></p>
-        <% } %>
-
-      </form>
+      <span class="moved-url">
+        <a href="https://theview-table-book-production-c508.up.railway.app">
+          theview-table-book-production-c508.up.railway.app
+        </a>
+      </span>
     </div>
   </div>
 
