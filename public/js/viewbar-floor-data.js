@@ -64,6 +64,8 @@ module.exports = [
   { id: "T46", x: 50, y: 80, type: "long", rotate: 0 },
   { id: "T47", x: 55, y: 80, type: "long", rotate: 0 },
   { id: "T55", x: 61, y: 40, type: "square", rotate: 0 },
-  { id: "T60", x: 35, y: 12, type: "square", rotate: 0 }
+  { id: "T60", x: 35, y: 12, type: "square", rotate: 0 },
+  { id: "A", x: 40, y: 8, type: "square", rotate: 0 },
+  { id: "B", x: 44, y: 8, type: "square", rotate: 0 }
 ];
 
