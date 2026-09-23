@@ -1,152 +1,152 @@
-// const cron = require("node-cron");
+const cron = require("node-cron");
 
-// const StereoReservation = require("../models/stereo-reservation.js");
-// const CoollyReservation = require("../models/coolly-reservation.js");
-// const ViewVillageReservation = require("../models/view-village-reservation.js");
-// const ViewbarReservation = require("../models/viewbar-reservation.js");
+const StereoReservation = require("../models/stereo-reservation.js");
+const CoollyReservation = require("../models/coolly-reservation.js");
+const ViewVillageReservation = require("../models/view-village-reservation.js");
+const ViewbarReservation = require("../models/viewbar-reservation.js");
 
-// const {
-//   generateStereoExcel,
-//   generateCoollyExcel,
-//   generateViewbarExcel,
-//   generateTheviewExcel
-// } = require("../utils/exportExcel");
+const {
+  generateStereoExcel,
+  generateCoollyExcel,
+  generateViewbarExcel,
+  generateTheviewExcel
+} = require("../utils/exportExcel");
 
-// const {sendEmailWithAttachment, sortBookingsByTable} = require("../utils/sendEmailResend");
+const {sendEmailWithAttachment, sortBookingsByTable} = require("../utils/sendEmailResend");
 
-// console.log("📅 Scheduler loaded");
+console.log("📅 Scheduler loaded");
 
-// cron.schedule(
-//   "15 15 * * *",
-//   async () => {
-//     try {
-//       console.log("⏰ Running daily report...");
+cron.schedule(
+  "15 15 * * *",
+  async () => {
+    try {
+      console.log("⏰ Running daily report...");
 
-//       const today = new Date();
+      const today = new Date();
 
-//       const start = new Date(today);
-//       start.setHours(0, 0, 0, 0);
+      const start = new Date(today);
+      start.setHours(0, 0, 0, 0);
 
-//       const end = new Date(today);
-//       end.setHours(23, 59, 59, 999);
+      const end = new Date(today);
+      end.setHours(23, 59, 59, 999);
 
-//       const todayStr = today.toISOString().slice(0, 10);
+      const todayStr = today.toISOString().slice(0, 10);
 
-//       console.log(`📆 Report date: ${todayStr}`);
+      console.log(`📆 Report date: ${todayStr}`);
 
-//       const attachments = [];
+      const attachments = [];
 
-//       // ---------- FETCH BOOKINGS ----------
+      // ---------- FETCH BOOKINGS ----------
 
-//       const stereoBookings = await StereoReservation.find({
-//         bookingDateTime: { $gte: start, $lte: end }
-//       });
+      const stereoBookings = await StereoReservation.find({
+        bookingDateTime: { $gte: start, $lte: end }
+      });
 
-//       const coollyBookings = await CoollyReservation.find({
-//         bookingDateTime: { $gte: start, $lte: end }
-//       });
+      const coollyBookings = await CoollyReservation.find({
+        bookingDateTime: { $gte: start, $lte: end }
+      });
 
-//       const viewbarBookings = await ViewbarReservation.find({
-//         bookingDateTime: { $gte: start, $lte: end }
-//       });
+      const viewbarBookings = await ViewbarReservation.find({
+        bookingDateTime: { $gte: start, $lte: end }
+      });
 
-//       const theviewBookings = await ViewVillageReservation.find({
-//         bookingDateTime: { $gte: start, $lte: end }
-//       });
+      const theviewBookings = await ViewVillageReservation.find({
+        bookingDateTime: { $gte: start, $lte: end }
+      });
 
-//       // ---------- GENERATE FILES ----------
+      // ---------- GENERATE FILES ----------
 
-//       if (stereoBookings?.length) {
+      if (stereoBookings?.length) {
 
-//         sortBookingsByTable(stereoBookings);
+        sortBookingsByTable(stereoBookings);
 
-//         const buffer = Buffer.from(generateStereoExcel(stereoBookings));
+        const buffer = Buffer.from(generateStereoExcel(stereoBookings));
 
-//         attachments.push({
-//           filename: `stereo-bookings-${todayStr}.xlsx`,
-//           content: buffer
-//         });
+        attachments.push({
+          filename: `stereo-bookings-${todayStr}.xlsx`,
+          content: buffer
+        });
 
-//         console.log(`📊 Stereo bookings: ${stereoBookings.length}`);
-//       }
+        console.log(`📊 Stereo bookings: ${stereoBookings.length}`);
+      }
 
-//       if (coollyBookings?.length) {
+      if (coollyBookings?.length) {
 
-//         sortBookingsByTable(coollyBookings);
+        sortBookingsByTable(coollyBookings);
 
-//         const buffer = Buffer.from(generateCoollyExcel(coollyBookings));
+        const buffer = Buffer.from(generateCoollyExcel(coollyBookings));
 
-//         attachments.push({
-//           filename: `coollychef-bookings-${todayStr}.xlsx`,
-//           content: buffer
-//         });
+        attachments.push({
+          filename: `coollychef-bookings-${todayStr}.xlsx`,
+          content: buffer
+        });
 
-//         console.log(`📊 Coolly bookings: ${coollyBookings.length}`);
-//       }
+        console.log(`📊 Coolly bookings: ${coollyBookings.length}`);
+      }
 
-//       if (viewbarBookings?.length) {
+      if (viewbarBookings?.length) {
 
-//         sortBookingsByTable(viewbarBookings);
+        sortBookingsByTable(viewbarBookings);
 
-//         const buffer = Buffer.from(generateViewbarExcel(viewbarBookings));
+        const buffer = Buffer.from(generateViewbarExcel(viewbarBookings));
 
-//         attachments.push({
-//           filename: `Theviewbar-bookings-${todayStr}.xlsx`,
-//           content: buffer
-//         });
+        attachments.push({
+          filename: `Theviewbar-bookings-${todayStr}.xlsx`,
+          content: buffer
+        });
 
-//         console.log(`📊 Viewbar bookings: ${viewbarBookings.length}`);
-//       }
+        console.log(`📊 Viewbar bookings: ${viewbarBookings.length}`);
+      }
 
-//       if (theviewBookings?.length) {
+      if (theviewBookings?.length) {
 
-//         sortBookingsByTable(theviewBookings);
+        sortBookingsByTable(theviewBookings);
 
-//         const buffer = Buffer.from(generateTheviewExcel(theviewBookings));
+        const buffer = Buffer.from(generateTheviewExcel(theviewBookings));
 
-//         attachments.push({
-//           filename: `theviewvillage-bookings-${todayStr}.xlsx`,
-//           content: buffer
-//         });
+        attachments.push({
+          filename: `theviewvillage-bookings-${todayStr}.xlsx`,
+          content: buffer
+        });
 
-//         console.log(`📊 TheViewVillage bookings: ${theviewBookings.length}`);
-//       }
+        console.log(`📊 TheViewVillage bookings: ${theviewBookings.length}`);
+      }
 
-//       // ---------- NO BOOKINGS ----------
+      // ---------- NO BOOKINGS ----------
 
-//       if (!attachments.length) {
-//         console.log("📭 No bookings today. Email skipped.");
-//         return;
-//       }
+      if (!attachments.length) {
+        console.log("📭 No bookings today. Email skipped.");
+        return;
+      }
 
-//       console.log(`📦 Sending ${attachments.length} attachment(s)...`);
+      console.log(`📦 Sending ${attachments.length} attachment(s)...`);
 
-//       // ---------- SEND EMAIL ----------
+      // ---------- SEND EMAIL ----------
 
-//       console.log(
-//         attachments.map(a => ({
-//             name: a.filename,
-//             size: a.content.length
-//         }))
-//         );
+      console.log(
+        attachments.map(a => ({
+            name: a.filename,
+            size: a.content.length
+        }))
+        );
 
-//     console.log("EMAIL_USER:", process.env.EMAIL_USER);
-//     console.log("EMAIL_PASS:", process.env.EMAIL_PASS ? "exists" : "missing");
+    console.log("EMAIL_USER:", process.env.EMAIL_USER);
+    console.log("EMAIL_PASS:", process.env.EMAIL_PASS ? "exists" : "missing");
 
-//       await sendEmailWithAttachment(todayStr, attachments, {
-//         stereoBookings,
-//         coollyBookings,
-//         viewbarBookings,
-//         theviewBookings
-//       });
+      await sendEmailWithAttachment(todayStr, attachments, {
+        stereoBookings,
+        coollyBookings,
+        viewbarBookings,
+        theviewBookings
+      });
 
-//       console.log("✅ Daily report email sent");
+      console.log("✅ Daily report email sent");
 
-//     } catch (err) {
-//       console.error("❌ Daily report error:", err);
-//     }
-//   },
-//   {
-//     timezone: "Asia/Bangkok"
-//   }
-// );
+    } catch (err) {
+      console.error("❌ Daily report error:", err);
+    }
+  },
+  {
+    timezone: "Asia/Bangkok"
+  }
+);
